@@ -1,5 +1,7 @@
 # Mock drivers — checkpoint 12
 
+These classes are test doubles for the native suite. They are not the board path. A real chip goes through `src/cts/sensors/` and that chip's own library. See [DRIVER_STATUS.md](DRIVER_STATUS.md).
+
 `cts::ByteBus` is a test seam with `write`, `read`, and failure. It is not `Wire.h` and not an I2C driver. The six drivers are optional, native C++11, and free of heap, `String`, and threads. Every count below is **SYNTHETIC**.
 
 | Driver | Behavior under test |

@@ -44,7 +44,7 @@ Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO
 
 - [Sample scheduler](docs/SAMPLE_SCHEDULER.md): next-deadline `set_rate`, no burst catch-up, stored min/max.
 
-- Six [mock drivers](docs/MOCK_DRIVERS.md) and an [FDC2214 guard](docs/FDC2214_GUARD.md) that does not link FDCxCapSense. Status table: [DRIVER_STATUS.md](docs/DRIVER_STATUS.md). Mock values are SYNTHETIC.
+- Optional sensor headers call Adafruit BME280, SHT4x, INA219, VL53L0X, Bogde HX711, ProtoCentral FDC1004, and FDCxCapSense. Any other library passes a finite number through `cts::scalarIfFinite`. Compile-tested on Nano 33 BLE, not flashed. The six `ByteBus` drivers remain synthetic test doubles.
 
 ## Not included yet
 

@@ -1,4 +1,4 @@
-# Arduino portability — version 0.12.5
+# Arduino portability — version 0.12.6
 
 The current profile is not for every Arduino board. `library.properties` lists only
 architectures whose boards have enough SRAM for this build. That list is still
@@ -47,12 +47,17 @@ the same reason: one id covers the 20 KB parts.
 | mbed_opta | Opta | megabytes | NOT_RUN |
 | renesas_portenta | Portenta C33 | 512 KB | NOT_RUN |
 
-Eligibility is not Wi-Fi, TLS, or a sensor driver. `CoreSmoke` still constructs a
+Eligibility is not Wi-Fi or TLS. Optional sensor headers call another library; they were compiled here and not flashed. `CoreSmoke` still constructs a
 full `Device` and prints the local hello. On Nano 33 BLE that sketch linked at
 91,264 bytes of flash and 87,616 bytes of RAM. `CheckInclude` linked at 85,392
 flash and 44,552 RAM. `PortableClock` linked at 85,744 flash and 44,576 RAM.
 Nothing was uploaded. The same source is what Arduino IDE builds on Windows,
 Linux, and macOS; only Nano 33 BLE was compiled in this environment.
+
+Sensor sketches `Bme280Adafruit`, `Sht4xAdafruit`, `Ina219Adafruit`, `Vl53l0xAdafruit`,
+`Hx711Bogde`, `Fdc1004Protocentral`, `FdcxCapSense`, and `AnySensorLibrary` also
+compiled for that board after those vendor libraries were installed. That compile
+does not mean a chip answered.
 
 ## Compile an eligible board
 

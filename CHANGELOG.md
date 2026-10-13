@@ -1,3 +1,4 @@
+- 0.12.6: Optional headers call Adafruit BME280, SHT4x, INA219, VL53L0X, the Bogde HX711 library, ProtoCentral FDC1004, and FDCxCapSense. Any other library can pass a finite number through scalarIfFinite. Those sketches compiled for Nano 33 BLE. Not flashed. Mock drivers stay synthetic test doubles.
 - 0.12.5: Examples repeat the local Serial line, so opening the monitor after upload still shows it. Still no socket and not flashed.
 - 0.12.4: Examples print a local Serial result and say they do not connect or measure. The Library Manager sentence no longer reads like a live sensor product. Still not flashed.
 - 0.12.3: PortableClock includes the library header so Arduino IDE on Windows, Linux, and macOS can find Millis32. Examples compiled for Nano 33 BLE; not flashed.
