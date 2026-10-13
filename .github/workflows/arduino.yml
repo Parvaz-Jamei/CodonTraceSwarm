@@ -1,0 +1,35 @@
+name: Arduino on Windows, Linux, and macOS
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  lint:
+    name: lint (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: arduino/arduino-lint-action@v2
+        with:
+          compliance: strict
+          library-manager: submit
+          project-path: .
+  compile:
+    name: compile (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:mbed_nano:nano33ble
+          sketch-paths: |
+            - examples/CheckInclude
+            - examples/CoreSmoke
+            - examples/PortableClock

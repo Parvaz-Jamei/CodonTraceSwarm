@@ -39,7 +39,7 @@ the same reason: one id covers the 20 KB parts.
 |---|---|---|---|
 | esp32 | ESP32, S2, S3, C3, C6 | 272 KB and up | NOT_RUN |
 | rp2040 | Pico, Pico 2 on the Earle core | 264 KB and up | NOT_RUN |
-| mbed_nano | Nano 33 BLE | 256 KB | NOT_RUN |
+| mbed_nano | Nano 33 BLE | 256 KB | Compiled with arduino-cli 1.5.1 and mbed_nano 4.6.0, not flashed |
 | mbed_rp2040 | Nano RP2040 Connect | 264 KB | NOT_RUN |
 | mbed_portenta | Portenta H7 | megabytes | NOT_RUN |
 | mbed_giga | Giga R1 | megabytes | NOT_RUN |
@@ -47,7 +47,10 @@ the same reason: one id covers the 20 KB parts.
 | renesas_portenta | Portenta C33 | 512 KB | NOT_RUN |
 
 Eligibility is not Wi-Fi, TLS, or a sensor driver. `CoreSmoke` still constructs a
-full `Device` and is unsuitable for any board below this cutoff.
+full `Device`. On Nano 33 BLE that sketch linked at 90,768 bytes of flash and
+87,608 bytes of RAM. `CheckInclude` and `PortableClock` also compiled. Nothing
+was uploaded. The same source is what Arduino IDE builds on Windows, Linux, and
+macOS; only Nano 33 BLE was compiled in this environment.
 
 ## Compile an eligible board
 
