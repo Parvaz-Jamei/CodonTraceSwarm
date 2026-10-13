@@ -1,4 +1,4 @@
-# CodonTraceSwarm — rebuild checkpoint 10
+# CodonTraceSwarm — rebuild checkpoint 11
 
 **An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
 
@@ -36,6 +36,8 @@ platform adapters. No board certification is implied; see [Arduino portability](
 - Board-neutral reconnect policy with bounded backoff, timeout, clock gating and attempt tokens; see [RECONNECT_POLICY.md](docs/RECONNECT_POLICY.md).
 
 - Live desktop broker crash/recovery now exercises the C++ reconnect policy; see [BROKER_LAB.md](docs/BROKER_LAB.md).
+
+- Optional [ArduinoMqttClient adapter](docs/ARDUINO_MQTT_ADAPTER.md): callback inbox and QoS1 reply publication, tested against pinned upstream using native platform shims.
 
 ## Not included yet
 

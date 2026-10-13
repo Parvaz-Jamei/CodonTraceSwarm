@@ -104,3 +104,25 @@ Decision: disable automatic Paho retry so observed retry decisions come from act
 C++ policy. Controlled localhost synchronous test calls do not replace asynchronous
 board SDK work; a connect timeout setting is not proof of a universal bounded handshake.
 Use real process kill and observed callback/refusal, not injected fake network success.
+
+
+## CP11 — 2026-10-13: actual ArduinoMqttClient API
+
+Cloned official ArduinoMqttClient at4699dda841c08b01036cd14412330bddc6c94edb,
+version0.1.8. Inspected MqttClient.cpp/h and LGPL-2.1-or-later source/license. API:
+parseMessage discards partial input; read uses per-byte timed reads; streaming-sized
+beginMessage avoids payload-buffer mode; endMessage QoS1 waits for PUBACK through poll.
+Question: can downlink survive concurrent uplink acknowledgment wait? Polling-only
+initial design is unsafe: upstream poll discards unread PUBLISH bytes. Replaced with
+callback-owned queue-only reception; independent actual-upstream regression required.
+No dependency copied or relicensed. This optional synchronous adapter cannot replace
+nonblocking SDK cancellation or prove all Arduino boards have adequate RAM.
+Sources and exact pin in docs/ARDUINO_MQTT_ADAPTER.md. No novelty claim.
+
+
+CP11 host provenance: fetch completed with origin/main fa7e7e995afe3ad7c0970ed783948d0336ac91f3.
+Host HEAD remains74c7b3f15c2d093da03e392094814d63a4997c2c. Status showed one pre-existing
+untracked run archive temporary file under runs/rq-mechanism-v2/phase2-short/workers4/by_seed/seed9304;
+it was neither removed nor included. Source tree test pin unchanged; do not call entire
+working directory clean. Initial native execution hit a local binary executable-bit
+PermissionError; restored execute bit on owned built ELF files and reran unchanged code.

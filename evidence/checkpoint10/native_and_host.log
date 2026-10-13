@@ -1,0 +1,17 @@
+checks=117 failures=0 sizeof_device=34928
+command_checks=607 failures=0 fuzz_inputs=20000 sizeof_decoder=6456
+dispatcher checks=1848 failures=0 sizeof(Dispatcher)=11000
+session checks=196 failures=0 sizeof(Device)=34928 sizeof(CommandSession)=12352
+clock checks=1101 failures=0 sizeof(MonitoredClock)=144 sizeof(TimedTelemetry)=72
+independent_clock_checks=50 failures=0
+network_checks=2377 failures=0 sizeof(NetworkInbox)=16824
+independent_network_checks=87 failures=0
+PASS: millis32 wrap, repeated tick, rollback latch, half-range boundary and 10000 increments across multiple wraps
+PASS: reconnect policy -> actual NetworkInbox connection generations, partial-drop, stale input and clock gating (synthetic transport events)
+Independent reconnect/Millis32 review: 290 checks, 0 failures
+PASS: 7 actual C++ envelopes, all five types, zero/null, Unicode, real coordinator acceptance and deterministic same-input replay. Host=74c7b3f15c2d093da03e392094814d63a4997c2c
+SYNTHETIC codec fixtures; no real hardware, MQTT or ALife trajectory is tested.
+PASS: 7 real host-generated command shapes decoded by C++; parameters and identities match. DECODE ONLY, no dispatch or firmware capability claim.
+PASS: real-host round trip: success, callback failure, expiry without callback, duplicate retry, and late host rejection; synthetic sensor=42.5; no broker/hardware.
+PASS: C++ monitored acquisition -> real host: 100ms queued zero retains acquisition UTC; stale input consumes no seq; fresh invalid/null accepted.
+PASS: real-host round trip: success, callback failure, expiry without callback, duplicate retry, and late host rejection; synthetic sensor=42.5; no broker/hardware.

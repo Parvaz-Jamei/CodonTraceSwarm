@@ -1,30 +1,36 @@
-# Checkpoint 10 validation — 2026-10-13
+# Checkpoint 11 validation — 2026-10-13
 
-| Gate | Result | Evidence |
+| Gate | Actual result | Evidence |
 |---|---|---|
-| Existing 6,383 native assertions, 20,000 fuzz inputs | PASS | evidence/native_and_host.log |
-| Millis32 / policy-inbox / independent290 native regression | PASS | same log |
-| Real TLS broker lab | PASS: 13 scenarios | evidence/broker_lab_cp10 |
-| Independent rerun of current lab | PASS: 13 scenarios | evidence/cp10_independent |
-| C++ live broker node ASan/UBSan | PASS: 13 scenarios | evidence/broker_lab_cp10/sanitized |
-| Arduino compilation / boards / physical sensors | NOT_RUN | no qualification claimed |
+| Existing6,383 native assertions +20,000 fuzz inputs | PASS | evidence/native_and_host.log |
+| Millis32, reconnect/inbox and independent290 | PASS | same log |
+| Actual pinned host integrations | PASS | same log |
+| Adapter against actual ArduinoMqttClient0.1.8 source | PASS:171 independent assertions | evidence/cp11_independent/native.log |
+| Same adapter suite ASan/UBSan | PASS:171; recovery disabled | evidence/cp11_independent/sanitized.log |
+| Independent scope/source review | Completed; material concurrency issue corrected | evidence/cp11_independent/REVIEW.md |
+| Board compile / physical Wi-Fi / TLS with this adapter | NOT_RUN | native shims only |
 
-Independent review found no material defect within inspected bridge/runner/policy scope.
-Retry trace verifies actual attempts were not earlier than their deadlines. Four policy
-attempts include initial adoption of an existing connection and three new connection
-attempts; three failures include original loss and two actual socket refusals. New
-recovery path covers nodeA; existing ACL/two-node tests still run. This is not a fleet test.
+Material correction: polling-only receive would lose inbound PUBLISH while upstream
+endMessage waits for PUBACK. Callback-owned queue-only receive preserves it. Regression
+uses actual upstream parser and synthetic MQTT byte stream; executor remains outside
+callback. Tests additionally exercise partial headers, delayed payload, bad routing,
+retained/empty/oversized input, short writes, missing/wrong PUBACK and callback ownership.
 
-ASan/UBSan recovery disabled. LSan disabled only through external sandbox helper because
-/proc is unavailable; symbolization warnings preserved. Ordinary core suite rerun; no
-claim that all core sanitizer suites were rerun in CP10.
+External ArduinoMqttClient source SHA4699dda841c08b01036cd14412330bddc6c94edb is not
+bundled. Test shims replace Arduino platform/transport, not upstream MQTT code.
+No real network/broker/MCU/TLS is involved in this new contract test. CP10 real broker
+results remain historical and do not validate this Arduino backend end-to-end.
 
-Sensor=synthetic42.5, fixed application UTC, asserted clockReady and zero jitter remain
-fixtures. TLS certificate/hostname verification and sockets are real. Python reconnect
-calls are synchronous on loopback. Broker is killed with connected clients but no
-publication deliberately held in flight. No production Arduino/nonblocking adapter,
-NTP qualification, persistent-session or in-flight PUBACK recovery claim.
+LSan disabled with external environment helper due to unavailable /proc; symbolization
+warnings retained. Upstream uses GNU stack VLAs; runner uses gnu++11, not pedantic ISO
+qualification. Optional synchronous adapter may allocate through upstream and block
+per byte; no global time bound or zero-allocation claim.
 
-Pinned tested host74c7b3f15c2d093da03e392094814d63a4997c2c; fetched remote remains
-fa7e7e995afe3ad7c0970ed783948d0336ac91f3. Original host not modified or pushed.
-Phase02 remains PARTIAL. See RESUME_FA.md and docs/BROKER_LAB.md for next work.
+Ordinary core binaries were built with normal check.py. Local execute-bit failures
+interrupted initial runs; execute bits on owned ELF outputs were restored and all
+compiled suites and five host verification commands rerun successfully, without
+changing code or relaxing assertions. Final log is the successful complete execution.
+
+Host test pin74c7b3f15c2d093da03e392094814d63a4997c2c; fetched mainfa7e7e995afe3ad7c0970ed783948d0336ac91f3.
+One unrelated pre-existing untracked run temporary file remains untouched. No host
+source patch or push. Phase02 remains PARTIAL; see RESUME_FA.md for remaining gates.

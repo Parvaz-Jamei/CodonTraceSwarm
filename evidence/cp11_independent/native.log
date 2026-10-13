@@ -1,0 +1,2 @@
+Independent real ArduinoMqttClient adapter review: 171 checks, 0 failures
+PASS real upstream 4699dda841c08b01036cd14412330bddc6c94edb; TEST shim/byte transport only; no board qualification

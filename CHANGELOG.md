@@ -1,3 +1,13 @@
+# Checkpoint 11
+
+- Added optional board-neutral ArduinoMqttClient0.1.8 adapter with injected MQTT client.
+- Exclusive callback queues concurrent downlink during PUBACK waits; initial polling-only
+  design replaced after independent review identified silent loss in upstream interaction.
+- Strict retained/topic/QoS/length/short-read checks; foreign-session publication rejected.
+- Reply cleared only after complete write and upstream QoS1 PUBACK success.
+- Added actual-upstream native contract harness; external LGPL dependency is not bundled.
+- Synchronous backend only: no hard realtime, full automatic reconnect or MCU qualification.
+
 # Checkpoint 10
 
 - Connected the actual C++ reconnect policy and inbox to the desktop TLS broker lab.

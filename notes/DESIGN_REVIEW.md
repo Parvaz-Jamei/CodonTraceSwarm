@@ -152,3 +152,24 @@ independent tester reran13 and checked retry deadlines. No material scoped defec
 Result critique B: desktop adoption of initial socket and synchronous reconnect do
 not implement Arduino nonblocking transport. NodeA recovery is not fleet qualification;
 zero jitter is deterministic test input, not entropy. These gates remain open.
+
+
+## CP11 five design decisions
+
+1. Inject actual MqttClient; keep Arduino/Wi-Fi/TLS includes out of core.
+2. Verify exact metadata and preserve existing inbox generation/bounds.
+3. Streaming QoS1 writes confirm reply only after actual upstream endMessage success.
+4. Exclusive callback ownership queues concurrent input during PUBACK waits.
+5. Distinguish native upstream contract test from MCU, TLS and realtime validation.
+
+Pre-test critique A found possible cross-scope publication; added matchesRoute before
+publishing. Pre-test critique B (independent review) identified upstream poll discarding
+incoming PUBLISH during endMessage; replaced polling-only design with owned callback.
+Tests must cover concurrent PUBLISH/PUBACK before this checkpoint is finalized.
+
+
+CP11 result critique A: independent actual-upstream171 assertions pass native and
+ASan/UBSan; interleaved PUBLISH-before-PUBACK is preserved and not executed in callback.
+Result critique B: shim may conceal actual Arduino allocation/time/SDK effects; no
+board or hard realtime result inferred. Original source was unchanged after reviewer
+hash capture. Complete core/host regression rerun passed after local file-mode repair.
