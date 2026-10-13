@@ -1,0 +1,375 @@
+{
+  "cpp_diagnostics": {
+    "nodeA": [
+      "==374==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized\n",
+      "==374==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized\n"
+    ],
+    "nodeB": [
+      "==376==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized\n",
+      "==376==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized\n"
+    ]
+  },
+  "broker": "amqtt",
+  "broker_version": "0.12.1",
+  "client_version": "2.1.0",
+  "host_commit": "74c7b3f15c2d093da03e392094814d63a4997c2c",
+  "loopback_only": true,
+  "synthetic_sensor": true,
+  "physical_board_tested": false,
+  "mqtt_version": "3.1.1",
+  "negotiated_tls": [
+    "TLSv1.3"
+  ],
+  "qos": 1,
+  "results": [
+    {
+      "test": "untrusted_ca_rejected",
+      "status": "PASS"
+    },
+    {
+      "test": "wrong_hostname_rejected",
+      "status": "PASS"
+    },
+    {
+      "test": "wrong_password_rejected_with_disconnect",
+      "status": "PASS"
+    },
+    {
+      "test": "anonymous_login_rejected_with_disconnect",
+      "status": "PASS"
+    },
+    {
+      "test": "two_nodes_verified_tls_qos1_subscriptions",
+      "status": "PASS"
+    },
+    {
+      "test": "cross_node_subscription_denied_by_broker",
+      "status": "PASS"
+    },
+    {
+      "test": "cross_node_publish_denied_by_broker",
+      "status": "PASS"
+    },
+    {
+      "test": "cpp_hello_over_tls_into_actual_host",
+      "status": "PASS"
+    },
+    {
+      "test": "two_cpp_nodes_host_success_failure_and_duplicate_suppression",
+      "status": "PASS"
+    },
+    {
+      "test": "broker_retained_delivery_rejected_by_cpp_inbox",
+      "status": "PASS"
+    },
+    {
+      "test": "broker_restart_fresh_hello_same_boot_and_next_command",
+      "status": "PASS"
+    },
+    {
+      "test": "abrupt_broker_loss_cpp_policy_two_real_refusals",
+      "status": "PASS"
+    },
+    {
+      "test": "cpp_policy_reconnect_fresh_hello_and_host_command",
+      "status": "PASS"
+    }
+  ],
+  "transcript": [
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "nodeA",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [
+          "sample"
+        ],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 0,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "nodeB",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [
+          "sample"
+        ],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 0,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reading",
+      "node_id": "nodeA",
+      "payload": {
+        "channel": "s",
+        "config_id": "config1",
+        "processing_version": "cts-rebuild-01",
+        "sample_ms": 1800000000000,
+        "status": "ok",
+        "valid": true,
+        "value": 42.5
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 1,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reply",
+      "node_id": "nodeA",
+      "payload": {
+        "command_id": "cmd-1",
+        "message": "succeeded",
+        "ok": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 2,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reply",
+      "node_id": "nodeB",
+      "payload": {
+        "command_id": "cmd-2",
+        "message": "execution_failed",
+        "ok": false
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 1,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "nodeA",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [
+          "sample"
+        ],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 3,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "nodeB",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [
+          "sample"
+        ],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 2,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reading",
+      "node_id": "nodeA",
+      "payload": {
+        "channel": "s",
+        "config_id": "config1",
+        "processing_version": "cts-rebuild-01",
+        "sample_ms": 1800000000000,
+        "status": "ok",
+        "valid": true,
+        "value": 42.5
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 4,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reply",
+      "node_id": "nodeA",
+      "payload": {
+        "command_id": "cmd-3",
+        "message": "succeeded",
+        "ok": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 5,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "nodeA",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [
+          "sample"
+        ],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 6,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "nodeA",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [
+          "sample"
+        ],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 7,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reading",
+      "node_id": "nodeA",
+      "payload": {
+        "channel": "s",
+        "config_id": "config1",
+        "processing_version": "cts-rebuild-01",
+        "sample_ms": 1800000000000,
+        "status": "ok",
+        "valid": true,
+        "value": 42.5
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 8,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reply",
+      "node_id": "nodeA",
+      "payload": {
+        "command_id": "cmd-4",
+        "message": "succeeded",
+        "ok": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 9,
+      "swarm_id": "lab"
+    }
+  ],
+  "host_command_statuses": {
+    "cmd-1": "acknowledged",
+    "cmd-2": "rejected",
+    "cmd-3": "acknowledged",
+    "cmd-4": "acknowledged"
+  }
+}

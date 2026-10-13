@@ -23,7 +23,7 @@ sources = [*core, root/'tests/native.cpp']
 subprocess.run([compiler, *flags, '-I'+str(root/'src'), *map(str,sources), '-o', str(exe)], check=True)
 messages = build / 'messages.jsonl'
 subprocess.run([str(exe), str(messages)], check=True)
-for target, source in [('cts_millis32', 'millis32.cpp'), ('cts_broker_node', 'broker_node.cpp'), ('cts_network_review', 'network_review.cpp'), ('cts_network_tests', 'network.cpp'), ('cts_network_probe', 'network_probe.cpp'), ('cts_clock_review', 'clock_review.cpp'), ('cts_clock_probe', 'clock_probe.cpp'), ('cts_clock_tests', 'clock.cpp'), ('cts_session_tests', 'session.cpp'), ('cts_session_probe', 'session_probe.cpp'), ('cts_dispatcher_tests', 'dispatcher.cpp'), ('cts_command_tests', 'commands.cpp'), ('cts_command_probe', 'command_probe.cpp')]:
+for target, source in [('cts_reconnect_review', 'reconnect_review.cpp'), ('cts_reconnect', 'reconnect.cpp'), ('cts_millis32', 'millis32.cpp'), ('cts_broker_node', 'broker_node.cpp'), ('cts_network_review', 'network_review.cpp'), ('cts_network_tests', 'network.cpp'), ('cts_network_probe', 'network_probe.cpp'), ('cts_clock_review', 'clock_review.cpp'), ('cts_clock_probe', 'clock_probe.cpp'), ('cts_clock_tests', 'clock.cpp'), ('cts_session_tests', 'session.cpp'), ('cts_session_probe', 'session_probe.cpp'), ('cts_dispatcher_tests', 'dispatcher.cpp'), ('cts_command_tests', 'commands.cpp'), ('cts_command_probe', 'command_probe.cpp')]:
     subprocess.run([compiler, *flags, '-I'+str(root/'src'), *map(str,core), str(root/'tests'/source), '-o', str(build/target)], check=True)
 subprocess.run([str(build/'cts_command_tests')], check=True)
 subprocess.run([str(build/'cts_dispatcher_tests')], check=True)
@@ -33,6 +33,8 @@ subprocess.run([str(build/'cts_clock_review')], check=True)
 subprocess.run([str(build/'cts_network_tests')], check=True)
 subprocess.run([str(build/'cts_network_review')], check=True)
 subprocess.run([str(build/'cts_millis32')], check=True)
+subprocess.run([str(build/'cts_reconnect')], check=True)
+subprocess.run([str(build/'cts_reconnect_review')], check=True)
 if a.host:
     subprocess.run([sys.executable, str(root/'tools/verify_host.py'), str(a.host.resolve()), str(messages)], check=True)
     subprocess.run([sys.executable, str(root/'tools/verify_commands.py'), str(a.host.resolve()), str(messages), str(build/'cts_command_probe'), '--evidence', str(build/'commands.json')], check=True)

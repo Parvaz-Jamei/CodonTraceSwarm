@@ -1,5 +1,7 @@
 // SYNTHETIC desktop MQTT laboratory node; no physical sensor or board SDK.
 #include "cts/NetworkInbox.h"
+#include "cts/ReconnectPolicy.h"
+#include <sstream>
 #include "session_fixture.h"
 #include <cstdlib>
 #include <cstring>
@@ -39,8 +41,35 @@ int main(int argc, char **argv) {
     return 3;
   std::cout << wire << std::endl;
   uint64_t token = 0, generation = 1;
+  ReconnectPolicy policy;
   std::string line;
   while (std::getline(std::cin, line)) {
+    if (line.compare(0, 8, "@policy ") == 0) {
+      std::istringstream input(line.substr(8));
+      std::string op; uint64_t now=0, attempt=0; uint32_t jitter=0; int ready=0;
+      if (!(input >> op >> now >> attempt >> ready >> jitter)) return 8;
+      bool accepted=false; LinkStep step;
+      if (op=="start") accepted=policy.start(now);
+      else if (op=="poll") {
+        step=policy.poll(now,ready!=0,jitter);
+        if(step.action==LinkAction::Close) inbox.disconnected();
+      } else if (op=="lost") {
+        accepted=policy.lost(attempt,now,jitter);
+        if(accepted) inbox.disconnected();
+      } else if(op=="online") {
+        accepted=policy.connected(attempt,now,ready!=0,jitter);
+        if(accepted && (inbox.connected(++generation)!=InboxCode::Ok ||
+            device.hello(wire,sizeof(wire))!=Error::Ok)) return 9;
+      } else return 10;
+      std::cout << "{\"accepted\":" << (accepted?"true":"false")
+        << ",\"action\":" << static_cast<int>(step.action)
+        << ",\"token\":" << policy.token()
+        << ",\"due\":" << policy.nextAttemptMs()
+        << ",\"attempts\":" << policy.health().attempts
+        << ",\"failures\":" << policy.health().failures
+        << ",\"hello\":" << (op=="online" && accepted?wire:"null") << "}" << std::endl;
+      continue;
+    }
     if (line == "@hello") {
       if (inbox.connected(++generation) != InboxCode::Ok ||
           device.hello(wire, sizeof(wire)) != Error::Ok)

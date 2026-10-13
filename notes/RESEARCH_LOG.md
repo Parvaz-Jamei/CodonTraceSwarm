@@ -70,3 +70,37 @@ MQTT_EVENT_DATA fragmentation exposes total_data_len/current_data_offset and ret
 only first fragment includes topic. Designed portable bounded handoff around these
 requirements, without claiming an SDK binding or treating JSON flags as authentication.
 No claim that MQTT or bounded queues are a novel scientific algorithm.
+
+
+## CP09 — 2026-10-13: reconnect and current host
+
+Question: how to bound repeated failure without embedding a vendor SDK or hidden RNG?
+Query: AWS Builders Library timeouts retries backoff jitter. Primary sources:
+https://d1.awsstatic.com/builderslibrary/pdfs/timeouts-retries-and-backoff-with-jitter.pdf
+and https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html .
+Decision: bounded exponential equal-jitter policy with injected jitter, explicit
+attempt token, deadline and stable-connection reset. No claimed optimal constants.
+
+Actual git fetch succeeded. Pinned local host remains clean at
+74c7b3f15c2d093da03e392094814d63a4997c2c; origin/main advanced to
+fa7e7e995afe3ad7c0970ed783948d0336ac91f3. Inspected diff: swarm protocol unchanged;
+runtime changes format imports, service initializes a local result with a type annotation; other changes mainly
+console/typechecking/experiments. Kept the plan's original exact test pin intentionally
+for reproducibility; do not describe the original pin as current remote HEAD. No host
+mutation or push performed. Latest host is not yet separately integration-qualified.
+
+Re-read new plan attachment and compared member hashes with preserved plan. Explicit
+user Arduino-wide requirement supersedes plan's ESP32-first rollout, not its safety,
+scientific validation or truthful Wi-Fi metadata requirements.
+
+
+## CP10 — 2026-10-13: connect actual policy to real network evidence
+
+Fetched origin again: remote fa7e7e995afe3ad7c0970ed783948d0336ac91f3; preserved
+clean test pin74c7b3f15c2d093da03e392094814d63a4997c2c. Consulted primary Paho
+client documentation https://eclipse.dev/paho/files/paho.mqtt.python/html/client.html
+for reconnect_on_failure, callback and connect_timeout behavior. Pin remains 2.1.0.
+Decision: disable automatic Paho retry so observed retry decisions come from actual
+C++ policy. Controlled localhost synchronous test calls do not replace asynchronous
+board SDK work; a connect timeout setting is not proof of a universal bounded handshake.
+Use real process kill and observed callback/refusal, not injected fake network success.

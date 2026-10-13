@@ -1,3 +1,24 @@
+# Checkpoint 10
+
+- Connected the actual C++ reconnect policy and inbox to the desktop TLS broker lab.
+- Added abrupt broker process termination, observed disconnect callback, two real
+  refused connections, policy-controlled retry and authenticated recovery.
+- Verified fresh same-boot hello and another actual-host command after recovery.
+- Recorded monotonic policy decisions and counters in reconnect_trace.json.
+- Prevented stale success reports surviving a failed rerun.
+- No production Arduino network adapter, in-flight delivery-loss or hardware claim.
+
+# Checkpoint 09
+
+- Reconciled the newly attached V2 plan: its member content equals the preserved plan.
+- Added board-neutral reconnect decisions, capped equal-jitter retry, timeout,
+  stale-attempt rejection, clock gating and monotonic fault latching.
+- Tested policy events with actual NetworkInbox generation and partial-drop behavior.
+- Independent review: 290 checks passed ordinary and ASan/UBSan; no material issue found.
+- Fetched current host; documented newer remote SHA without silently replacing test baseline.
+- Phase02 remains PARTIAL: production backend, abrupt real-network integration and MCU
+  resource/hardware gates remain. No new board or real-broker run claimed.
+
 # Checkpoint 08
 
 - Corrected target scope to all Arduino-supported board families, not ESP32-only.

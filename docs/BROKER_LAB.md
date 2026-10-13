@@ -88,3 +88,34 @@ abrupt loss/in-flight publish tests, memory maps, firmware builds and hardware s
   authentication and ACL fields used; do not substitute fields from another release.
 
 This lab validates protocol integration, not ALife hypotheses or sensor accuracy.
+
+
+## Checkpoint 10 extension: policy-driven desktop recovery
+
+The current runner additionally executes scenarios 12 and 13: abrupt process kill
+with active clients; actual node disconnect callback; two real connection refusals
+while the broker stays down; restart; a new TLS/MQTT/subscription attempt triggered
+by the C++ ReconnectPolicy; actual fresh hello and host command/reply acceptance.
+Paho automatic reconnect is disabled. All existing eleven scenarios are retained.
+
+The initial policy attempt is attached to an already-established socket so the lab
+can enter Online; subsequent three attempts are actual new connection attempts.
+The C++ node runs the real policy and dispatches its loss/recovery to the real inbox.
+Python supplies OS monotonic milliseconds and drives the socket operations in response
+to decisions. The trace records attempt token, due time, observed time, counts and
+hello. Expected counts are four policy attempts, three failures, two socket refusals.
+
+Scope: a desktop integration experiment, not a deployable Arduino backend. Paho connect
+calls are synchronous on loopback, with connect_timeout configured; this is not evidence
+of a robust asynchronous firmware timeout/cancellation implementation. Jitter input is
+fixed zero for reproducibility, not a fleet entropy evaluation. The application clock
+approval is a fixture; TLS still verifies the actual CA/hostname against the OS clock.
+The broker is killed while clients are connected but no publication is deliberately
+held in flight. No exactly-once network delivery or persistent-session recovery claim.
+
+Current evidence is evidence/broker_lab_cp10; earlier evidence/broker_lab remains the
+original CP07 run. Test output directory reports are cleared at start so an interrupted
+or failing rerun cannot retain an earlier successful results.json.
+
+Technical reference checked: https://eclipse.dev/paho/files/paho.mqtt.python/html/client.html
+(connect_timeout, reconnect_on_failure and callbacks; actual dependency stays Paho2.1.0).

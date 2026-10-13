@@ -1,0 +1,14 @@
+PASS: untrusted_ca_rejected
+PASS: wrong_hostname_rejected
+PASS: wrong_password_rejected_with_disconnect
+PASS: anonymous_login_rejected_with_disconnect
+PASS: two_nodes_verified_tls_qos1_subscriptions
+PASS: cross_node_subscription_denied_by_broker
+PASS: cross_node_publish_denied_by_broker
+PASS: cpp_hello_over_tls_into_actual_host
+PASS: two_cpp_nodes_host_success_failure_and_duplicate_suppression
+PASS: broker_retained_delivery_rejected_by_cpp_inbox
+PASS: broker_restart_fresh_hello_same_boot_and_next_command
+PASS: abrupt_broker_loss_cpp_policy_two_real_refusals
+PASS: cpp_policy_reconnect_fresh_hello_and_host_command
+PASS: 13 live broker checks; C++ sensor synthetic; no board qualification.

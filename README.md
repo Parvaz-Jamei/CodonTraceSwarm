@@ -1,4 +1,4 @@
-# CodonTraceSwarm — rebuild checkpoint 08
+# CodonTraceSwarm — rebuild checkpoint 10
 
 **An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
 
@@ -32,6 +32,10 @@ platform adapters. No board certification is implied; see [Arduino portability](
 - Real loopback TLS MQTT laboratory: two actual C++ nodes, broker ACLs and pinned Genesis host; see [BROKER_LAB.md](docs/BROKER_LAB.md).
 
 - Arduino library metadata, board-selectable compile/report tool, two sketches and generic wrapping millis counter.
+
+- Board-neutral reconnect policy with bounded backoff, timeout, clock gating and attempt tokens; see [RECONNECT_POLICY.md](docs/RECONNECT_POLICY.md).
+
+- Live desktop broker crash/recovery now exercises the C++ reconnect policy; see [BROKER_LAB.md](docs/BROKER_LAB.md).
 
 ## Not included yet
 

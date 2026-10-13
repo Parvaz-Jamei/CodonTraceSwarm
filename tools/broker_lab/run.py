@@ -33,6 +33,7 @@ class Client:
         if credentials:self.client.username_pw_set(name,password)
         ctx=ssl.create_default_context(cafile=str(ca));ctx.minimum_version=ssl.TLSVersion.TLSv1_2
         self.client.tls_set_context(ctx)
+        self.client.connect_timeout=3
         self.client.on_connect=self.on_connect
         self.client.on_disconnect=lambda c,u,flags,reason,props:self.disconnected.set()
         self.client.on_message=lambda c,u,m:self.messages.put((m.topic,bytes(m.payload),bool(m.retain),m.qos))
@@ -73,6 +74,9 @@ class Node:
 def main():
     p=argparse.ArgumentParser();p.add_argument('--host',type=Path,required=True);p.add_argument('--node',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
     a.host=a.host.resolve();a.node=a.node.resolve();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=True)
+    # Never leave an earlier successful report after a failed rerun.
+    for name in ('results.json','reconnect_trace.json'):
+        (a.output/name).unlink(missing_ok=True)
     assert importlib.metadata.version('amqtt')=='0.12.1'
     assert importlib.metadata.version('paho-mqtt')=='2.1.0'
     assert subprocess.check_output(['git','-C',str(a.host),'rev-parse','HEAD'],text=True).strip()==PIN
@@ -171,6 +175,56 @@ def main():
         for n in nodes:
             hello=nodes[n].call('@hello');peers[n].publish(up(n),canonical(hello));ingest_one(n)
         execute('nodeA');passed('broker_restart_fresh_hello_same_boot_and_next_command')
+        # Actual abrupt process loss; C++ policy, not Paho, decides retries.
+        policy_trace=[]
+        def policy(op,token=0,ready=True):
+            now=time.monotonic_ns()//1000000
+            r=nodes['nodeA'].call(f'@policy {op} {now} {token} {int(ready)} 0')
+            policy_trace.append({'op':op,'now_ms':now,**r});return r
+        assert policy('start')['accepted']
+        initial=policy('poll');assert initial['action']==1
+        online=policy('online',initial['token']);assert online['accepted']
+        peers['nodeA'].publish(up('nodeA'),canonical(online['hello']));ingest_one('nodeA')
+        broker.kill();broker.wait(timeout=5)
+        assert peers['nodeA'].disconnected.wait(5), 'no actual disconnect callback'
+        assert policy('lost',initial['token'])['accepted']
+        for c in peers.values():c.close()
+        refused=0;deadline=time.monotonic()+20
+        while refused<2:
+            assert time.monotonic()<deadline, 'offline policy retry deadline'
+            decision=policy('poll')
+            if decision['action']==0:
+                time.sleep(0.025);continue
+            assert decision['action']==1
+            try:
+                candidate=Client('nodeA',passwords['nodeA'],ca,port)
+            except ConnectionRefusedError:
+                refused+=1;assert policy('lost',decision['token'])['accepted']
+            else:
+                candidate.close();raise AssertionError('offline broker accepted connection')
+        assert refused==2
+        passed('abrupt_broker_loss_cpp_policy_two_real_refusals')
+        broker=start_broker()
+        # Controller is a lab observer. Node A is reconnected only on a policy decision.
+        controller=Client('controller',passwords['controller'],ca,port)
+        stack.callback(controller.close);controller.ready();assert controller.subscribe(up('nodeA'))
+        peers={'controller':controller}
+        while True:
+            assert time.monotonic()<deadline, 'recovery policy deadline'
+            decision=policy('poll')
+            if decision['action']==0:
+                time.sleep(0.025);continue
+            assert decision['action']==1
+            candidate=Client('nodeA',passwords['nodeA'],ca,port)
+            stack.callback(candidate.close);candidate.ready();assert candidate.subscribe(down('nodeA'))
+            online=policy('online',decision['token']);assert online['accepted']
+            peers['nodeA']=candidate
+            candidate.publish(up('nodeA'),canonical(online['hello']));ingest_one('nodeA')
+            break
+        execute('nodeA')
+        assert policy_trace[-1]['attempts']==4 and policy_trace[-1]['failures']==3
+        passed('cpp_policy_reconnect_fresh_hello_and_host_command')
+        (a.output/'reconnect_trace.json').write_text(json.dumps(policy_trace,indent=2)+'\n')
         state=host.snapshot(now_ms=T)['state']
         for node in nodes.values():node.close()
         report={'cpp_diagnostics':{n:node.errors for n,node in nodes.items()},'broker':'amqtt','broker_version':'0.12.1','client_version':'2.1.0','host_commit':PIN,'loopback_only':True,'synthetic_sensor':True,'physical_board_tested':False,'mqtt_version':'3.1.1','negotiated_tls':tls_versions,'qos':1,'results':results,'transcript':transcript,'host_command_statuses':{k:v['status'] for k,v in state['commands'].items()}}

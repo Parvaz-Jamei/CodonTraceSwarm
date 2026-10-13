@@ -107,3 +107,48 @@ external task synchronization remains required. Result review A: all eight nativ
 pass, including independent87. Result review B: real host-generated commands split into
 7-byte chunks still yield correct success/failure/expiry/duplicate outcomes. Sanitizers
 passed with documented LSan limitation. No live network/firmware qualification inferred.
+
+
+## CP09 — five focused design decisions (primary author)
+
+1. Keep transport SDK outside policy so Arduino families share semantics.
+2. Use single-owner monotonic state; stale callbacks keyed by attempt token are ignored.
+3. Gate every connection on valid clock; bound attempts rather than blocking sleeps.
+4. Cap exponential equal-jitter windows and reset only after stable connection, avoiding flapping reset.
+5. Exercise actual NetworkInbox loss/generation behavior, not only a standalone timer.
+
+Pre-test critique A: modulo wrap cannot manufacture UTC; caller must use actual validated clock.
+Pre-test critique B: canceling a stale callback must target its own socket, not the current one.
+Independent tester assigned production review and separate adverse tests. Results appended
+once actually executed; no multi-round/team sign-off claimed in advance.
+
+
+CP09 result review A: primary native integration passed with real NetworkInbox;
+existing 6,383 assertions, 20,000 fuzz inputs, millis regression and pinned host paths
+remained green. Review target added to normal runner and CMake; independent binary
+rerun after integration also passed 290 assertions.
+Result review B: independent native and ASan/UBSan tests found no material defect.
+Synthetic event tests cannot stand in for real socket cancellation, MCU clocks,
+network dropout or fleet jitter. Independent review scope is these headers, not a
+retroactive CP07 broker release sign-off. Phase02 remains partial.
+
+
+## CP10 design decisions, primary author
+
+1. Reuse the actual broker, nodes, grants and host; no duplicate fake protocol model.
+2. Expose a controlled test-only policy bridge; production policy source is unchanged.
+3. Terminate broker with clients online; require actual disconnect callback before lost.
+4. Keep broker offline for two genuine refused attempts; do not force policy deadlines.
+5. Require verified TLS/subscription, fresh hello and real host acceptance after recovery.
+
+Pre-test critique A: Paho retries must be off or policy evidence is confounded.
+Pre-test critique B: clockReady and zero jitter are fixtures and cannot establish NTP
+or fleet desynchronization; synchronous test adapter cannot qualify nonblocking firmware.
+Independent reviewer assigned current test bridge/runner and a separate full run.
+
+
+CP10 result critique A: primary ordinary and sanitized real-broker runs passed all13;
+independent tester reran13 and checked retry deadlines. No material scoped defect.
+Result critique B: desktop adoption of initial socket and synchronous reconnect do
+not implement Arduino nonblocking transport. NodeA recovery is not fleet qualification;
+zero jitter is deterministic test input, not entropy. These gates remain open.
