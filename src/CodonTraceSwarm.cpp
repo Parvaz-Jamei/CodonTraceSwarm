@@ -292,10 +292,13 @@ Error Device::begin(const SessionConfig &s) {
         std::strlen(channels_[i].name) + std::strlen(channels_[i].json) + 4;
   if (bytes >= TxBytes)
     return Error::Capacity;
+  if (sessionNumber_ == MaxWireInteger)
+    return Error::SequenceExhausted;
   copy(swarm_, s.swarmId);
   copy(node_, s.nodeId);
   copy(boot_, s.bootId);
   copy(version_, s.processingVersion);
+  ++sessionNumber_;
   seq_ = 0;
   exhausted_ = false;
   started_ = true;

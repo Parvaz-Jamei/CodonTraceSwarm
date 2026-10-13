@@ -1,3 +1,19 @@
+# Checkpoint 06
+
+- Added fixed-capacity network byte inbox and strict fragment metadata checks.
+- Bound network topic scope to the actual CommandSession (independent defect CP06-01 fixed).
+- Added explicit connection generations, disconnect loss accounting and backpressure.
+- Added 2,377 inbox assertions, 87 independent checks and fragmented real-host roundtrip.
+- Network SDK/TLS/board integration remains pending; no live broker qualification.
+
+# Checkpoint 05
+
+- Verified the user-attached checkpoint04 source and preserved target plan V2.
+- Added monitored clock metadata, conservative discontinuity gates and health counters.
+- Added acquisition stamps bound to the Device session and freshness-gated serialization.
+- Added 1,101 clock checks, 50 independent adversarial checks and real-host timestamp integration.
+- Documented explicit remaining target-plan gaps; no firmware/network readiness claim.
+
 # Checkpoint 04
 
 - Added frozen per-channel operation grants and registry-backed authorization.

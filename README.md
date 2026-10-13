@@ -1,13 +1,8 @@
-# CodonTraceSwarm — rebuild checkpoint 04
+# CodonTraceSwarm — rebuild checkpoint 06
 
 **An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
 
 This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL** until remaining integration and completeness gates are closed. Local callbacks, registry-backed grants and host replies are now included; board/network execution is not.
-
-## Arduino library layout
-
-This repository root follows the Arduino 1.5 library format so it can be submitted to the Library Manager later. `library.properties` is version 0.4.0, category Communication, `architectures=*`. The name does not start with Arduino. Nothing here is registered in the Library Manager index yet: that step needs a separate submission after a compliant git tag. `examples/CheckInclude` only checks that the header is visible. It is not a hardware demo.
-
 
 ## Implemented
 
@@ -25,6 +20,11 @@ This repository root follows the Arduino 1.5 library format so it can be submitt
 
 - Registry-backed command grants and shared-sequence replies with a bounded outbox; see [COMMAND_SESSION.md](docs/COMMAND_SESSION.md).
 - Actual host command → synthetic C++ callback → host reply-state integration test.
+
+- Monitored clock state, explicit age/uncertainty, acquisition stamps and stale-sample gates; see [CLOCK_AND_ACQUISITION.md](docs/CLOCK_AND_ACQUISITION.md).
+- [Target-plan progress and remaining requirements (فارسی)](docs/TARGET_PLAN_STATUS_FA.md).
+
+- Bounded fragmented network-byte handoff with exact topic/session binding; see [NETWORK_INBOX.md](docs/NETWORK_INBOX.md).
 
 ## Not included yet
 
@@ -92,8 +92,9 @@ and does not enforce hello-before-reading. `wifi=true` declares eligibility for 
 Wi-Fi-only host contract, not an observed network link. Ethernet-only applications must
 not pretend to be Wi-Fi nodes.
 
-Telemetry UTC values remain caller-supplied and range-checked; the new dispatcher guards command
-time separately through ClockProvider. A real synchronized board adapter remains to be built.
+Low-level telemetry UTC remains caller-supplied. TimedTelemetry now gates acquisition
+stamps against MonitoredClock; the same monitor can gate command dispatch. A real
+synchronized board adapter remains to be built.
 Host receipt enforces telemetry freshness.
 Source units stay on the wire; host normalization must not be applied twice. Tables never
 extrapolate. User text byte limits are deliberately no wider than corresponding host

@@ -92,7 +92,7 @@ RegistryPolicy is called only after the strict parser in the standard session fl
   host acknowledged/rejected states. No rewriting of the hello capability list.
 - Separate negative test: positive result arriving at host expiry is rejected.
 - Synthetic sensor value 42.5; no measured accuracy, sensor calibration or novelty claim.
-- Measured x86-64 sizeof(Device)=34,920; sizeof(CommandSession)=12,352 (includes dispatcher).
+- Measured x86-64 sizeof(Device)=34,928; sizeof(CommandSession)=12,352 (includes dispatcher).
   Keep both long-lived on constrained targets. Sizes exclude TLS, callback stack and
   transport buffers and are not MCU firmware measurements.
 

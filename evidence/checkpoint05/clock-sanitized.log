@@ -1,0 +1,3 @@
+==115==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==115==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+clock checks=1101 failures=0 sizeof(MonitoredClock)=144 sizeof(TimedTelemetry)=72

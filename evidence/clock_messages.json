@@ -1,0 +1,70 @@
+{
+  "synthetic": true,
+  "host_commit": "74c7b3f15c2d093da03e392094814d63a4997c2c",
+  "messages": [
+    {
+      "boot_id": "boot",
+      "kind": "hello",
+      "node_id": "node",
+      "payload": {
+        "channels": {
+          "s": {
+            "descriptor": {
+              "config_id": "config1",
+              "feature_id": "synthetic_probe",
+              "measurement_model": "direct",
+              "rate_hz": [
+                1,
+                10
+              ],
+              "source_unit": "degC",
+              "value_type": "scalar"
+            },
+            "quantity": "temperature",
+            "unit": "degC"
+          }
+        },
+        "operations": [],
+        "wifi": true
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 0,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reading",
+      "node_id": "node",
+      "payload": {
+        "channel": "s",
+        "config_id": "config1",
+        "processing_version": "cts-rebuild-01",
+        "sample_ms": 1800000000000,
+        "status": "ok",
+        "valid": true,
+        "value": 0
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 1,
+      "swarm_id": "lab"
+    },
+    {
+      "boot_id": "boot",
+      "kind": "reading",
+      "node_id": "node",
+      "payload": {
+        "channel": "s",
+        "config_id": "config1",
+        "processing_version": "cts-rebuild-01",
+        "sample_ms": 1800000001100,
+        "status": "sensor_timeout",
+        "valid": false,
+        "value": null
+      },
+      "schema": "genesis_swarm_v2",
+      "seq": 2,
+      "swarm_id": "lab"
+    }
+  ],
+  "probe_log": "SYNTHETIC: acquisition timestamp preserved; stale rejected=1; encoded=2\n"
+}

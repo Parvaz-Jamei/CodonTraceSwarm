@@ -122,6 +122,7 @@ public:
   Error reply(const char *commandId, bool ok, const char *message, char *output,
               size_t capacity);
   void end() { started_ = false; }
+  uint64_t activeSessionNumber() const { return started_ ? sessionNumber_ : 0; }
   size_t channelCount() const { return count_; }
   uint64_t nextSequence() const { return seq_; }
 
@@ -146,7 +147,7 @@ private:
   Channel channels_[MaxChannels];
   size_t count_ = 0;
   bool started_ = false, frozen_ = false, exhausted_ = false;
-  uint64_t seq_ = 0;
+  uint64_t seq_ = 0, sessionNumber_ = 0;
   char swarm_[64] = {}, node_[64] = {}, boot_[64] = {}, version_[129] = {};
   Error emit(const char *kind, const char *payload, char *, size_t);
   bool numberValid(const Channel &, double) const;

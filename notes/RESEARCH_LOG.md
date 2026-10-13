@@ -47,3 +47,26 @@ Design inference: no; retain separate admission, callback outcome and host accep
 Genesis command_id correlates application results; this stage does not implement MQTT
 Response Topic/Correlation Data properties or TLS. Cross-domain reliability ideas are
 applied as engineering practices, not claimed as new scientific findings.
+
+## 2026-10-13 Asia/Tehran — checkpoint05
+
+User reattached authoritative checkpoint04 and target plan V2; zip hashes matched local
+source. Read AGENTS.md, Phase01/02, resource/API and session contracts. Remote fetch still
+matches 74c7b3f15c2d093da03e392094814d63a4997c2c; no host mutation.
+Primary-source lookup: Espressif System Time, instant/smooth SNTP corrections and sync
+callback semantics: https://docs.espressif.com/projects/esp-idf/en/v5.2/esp32/api-reference/system/system_time.html
+Existing ESP Timer reference: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/esp_timer.html
+Inference: sync status alone must not silently stand in for acquisition-time quality;
+preserve original timestamp, explicit uncertainty/age and discontinuity handling.
+Implementation is an engineering validator, not a new clock-estimation algorithm.
+
+## 2026-10-13 Asia/Tehran — checkpoint06
+
+Checkpoint05 and complete target plan were present. Fetched host main still equals
+74c7b3f15c2d093da03e392094814d63a4997c2c; working tree clean. Inspected actual
+swarm/mqtt.py topic routing and command publishing contract.
+Primary-source lookup: https://docs.espressif.com/projects/esp-mqtt/en/latest/esp32/
+MQTT_EVENT_DATA fragmentation exposes total_data_len/current_data_offset and retain;
+only first fragment includes topic. Designed portable bounded handoff around these
+requirements, without claiming an SDK binding or treating JSON flags as authentication.
+No claim that MQTT or bounded queues are a novel scientific algorithm.

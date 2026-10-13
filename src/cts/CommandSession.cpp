@@ -28,6 +28,10 @@ const char *message(CommandState s) {
   }
 }
 } // namespace
+bool CommandSession::matchesRoute(const char *s, const char *n) const {
+  return started_ && s && n && !std::strcmp(s, swarm_) &&
+         !std::strcmp(n, node_) && device_.matchesSession(swarm_, node_, boot_);
+}
 CommandSession::~CommandSession() {
   // Destruction abandons any unsent reply; never do this during active
   // delivery.

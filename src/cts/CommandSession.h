@@ -52,6 +52,7 @@ public:
   // transport. This does NOT assert host acceptance; expired host commands can
   // reject replies.
   SessionCode confirmReplyPublished(uint64_t expectedSequence);
+  bool matchesRoute(const char *swarm, const char *node) const;
   size_t pendingCommands() const { return dispatcher_.pending(); }
 
 private:

@@ -1,0 +1,1 @@
+PASS: C++ monitored acquisition -> real host: 100ms queued zero retains acquisition UTC; stale input consumes no seq; fresh invalid/null accepted.

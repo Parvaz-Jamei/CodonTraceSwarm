@@ -72,3 +72,38 @@ Result review B: actual host terminal statuses acknowledged/rejected/rejected/ex
 including intentional refusal of late success. All four native suites and real-host
 probe passed ASan/UBSan with the documented LeakSanitizer environment override.
 Independent review remains PENDING; these are primary-agent self-review passes.
+
+# Checkpoint05 — five design decisions
+
+1. Coherent injected TimeSource snapshots; portable gates do not pretend to be NTP.
+2. Unknown metadata remains unknown; explicit opt-out cannot rewrite uncertainty as zero.
+3. Watch monotonic rollback even during unsynchronized samples; latch mapping discontinuities.
+4. Capture UTC at acquisition and bind it to the Device session; never retimestamp a backlog.
+5. Keep low-level codec separate from monitored telemetry and document bypass boundaries.
+
+Pre-test review A: source provenance and boundary inclusivity. Pre-test review B: clock
+outages must not hide rollback, stamps must reject foreign/old sessions, rejected data
+must consume no sequence. Independent tester authored 50 adversarial checks and reviewed
+the new production code; see evidence/independent_review. No reproducible blocker found.
+Result review A: all old regressions plus new monitor/gate tests and sanitizers passed.
+Result review B: real host accepted delayed acquisition timestamps/zero/null; stale input
+was filtered without replacing its UTC. No board or NTP result inferred.
+
+Target-plan comparison made explicit: profile history16 versus suggested32, additional
+retry-window retention, and rejection wire replies remain gaps. Do not call this Phase05.
+
+# Checkpoint06 — five design decisions and review
+
+1. Copy bounded receive bytes only in callback path; defer parsing/execution.
+2. Carry connection generation, explicit retain knowledge and exact topic lengths.
+3. Reassemble one contiguous publish with bounded storage; count abandon/disconnect loss.
+4. Preserve head frame under transient backpressure; do not evict queued accepted data.
+5. Bind topic scope to actual live CommandSession, not merely independently valid strings.
+
+Pre-test A reviewed ESP-MQTT fragment semantics; pre-test B reviewed memory/ownership and
+single-owner task contract. Independent tester found CP06-01 scope mismatch and verified
+its fix with a regression. Added reentry guard for callback exposure while polling;
+external task synchronization remains required. Result review A: all eight native suites
+pass, including independent87. Result review B: real host-generated commands split into
+7-byte chunks still yield correct success/failure/expiry/duplicate outcomes. Sanitizers
+passed with documented LSan limitation. No live network/firmware qualification inferred.

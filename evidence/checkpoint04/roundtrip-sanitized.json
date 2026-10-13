@@ -1,0 +1,210 @@
+{
+  "host_commit": "74c7b3f15c2d093da03e392094814d63a4997c2c",
+  "synthetic_sensor": true,
+  "broker_tested": false,
+  "hello": {
+    "boot_id": "boot",
+    "kind": "hello",
+    "node_id": "node",
+    "payload": {
+      "channels": {
+        "s": {
+          "descriptor": {
+            "config_id": "config1",
+            "feature_id": "synthetic_probe",
+            "measurement_model": "direct",
+            "rate_hz": [
+              1,
+              10
+            ],
+            "source_unit": "degC",
+            "value_type": "scalar"
+          },
+          "quantity": "temperature",
+          "unit": "degC"
+        }
+      },
+      "operations": [
+        "sample"
+      ],
+      "wifi": true
+    },
+    "schema": "genesis_swarm_v2",
+    "seq": 0,
+    "swarm_id": "lab"
+  },
+  "commands": [
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "lab",
+      "node_id": "node",
+      "boot_id": "boot",
+      "command_id": "cmd-1",
+      "operation": "sample",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "lab",
+      "node_id": "node",
+      "boot_id": "boot",
+      "command_id": "cmd-2",
+      "operation": "sample",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "lab",
+      "node_id": "node",
+      "boot_id": "boot",
+      "command_id": "cmd-3",
+      "operation": "sample",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "lab",
+      "node_id": "node",
+      "boot_id": "boot",
+      "command_id": "cmd-4",
+      "operation": "sample",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    }
+  ],
+  "results": [
+    {
+      "reply": {
+        "schema": "genesis_swarm_v2",
+        "swarm_id": "lab",
+        "node_id": "node",
+        "boot_id": "boot",
+        "seq": 2,
+        "kind": "reply",
+        "payload": {
+          "command_id": "cmd-1",
+          "ok": true,
+          "message": "succeeded"
+        }
+      },
+      "reading": {
+        "schema": "genesis_swarm_v2",
+        "swarm_id": "lab",
+        "node_id": "node",
+        "boot_id": "boot",
+        "seq": 1,
+        "kind": "reading",
+        "payload": {
+          "channel": "s",
+          "sample_ms": 1800000000000,
+          "value": 42.5,
+          "processing_version": "cts-rebuild-01",
+          "valid": true,
+          "status": "ok",
+          "config_id": "config1"
+        }
+      },
+      "calls": 1,
+      "retry_identical": true,
+      "duplicate_suppressed": true
+    },
+    {
+      "reply": {
+        "schema": "genesis_swarm_v2",
+        "swarm_id": "lab",
+        "node_id": "node",
+        "boot_id": "boot",
+        "seq": 3,
+        "kind": "reply",
+        "payload": {
+          "command_id": "cmd-2",
+          "ok": false,
+          "message": "execution_failed"
+        }
+      },
+      "reading": null,
+      "calls": 2,
+      "retry_identical": true,
+      "duplicate_suppressed": true
+    },
+    {
+      "reply": {
+        "schema": "genesis_swarm_v2",
+        "swarm_id": "lab",
+        "node_id": "node",
+        "boot_id": "boot",
+        "seq": 4,
+        "kind": "reply",
+        "payload": {
+          "command_id": "cmd-3",
+          "ok": false,
+          "message": "expired_before_execution"
+        }
+      },
+      "reading": null,
+      "calls": 2,
+      "retry_identical": true,
+      "duplicate_suppressed": true
+    },
+    {
+      "reply": {
+        "schema": "genesis_swarm_v2",
+        "swarm_id": "lab",
+        "node_id": "node",
+        "boot_id": "boot",
+        "seq": 6,
+        "kind": "reply",
+        "payload": {
+          "command_id": "cmd-4",
+          "ok": true,
+          "message": "succeeded"
+        }
+      },
+      "reading": {
+        "schema": "genesis_swarm_v2",
+        "swarm_id": "lab",
+        "node_id": "node",
+        "boot_id": "boot",
+        "seq": 5,
+        "kind": "reading",
+        "payload": {
+          "channel": "s",
+          "sample_ms": 1800000000000,
+          "value": 42.5,
+          "processing_version": "cts-rebuild-01",
+          "valid": true,
+          "status": "ok",
+          "config_id": "config1"
+        }
+      },
+      "calls": 3,
+      "retry_identical": true,
+      "duplicate_suppressed": true
+    }
+  ],
+  "host_statuses": [
+    "acknowledged",
+    "rejected",
+    "rejected",
+    "expired"
+  ]
+}

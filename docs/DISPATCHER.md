@@ -11,7 +11,8 @@ network-connected sensor driver. The `Device` codec defaults to no operations; c
 2. Implement `ClockProvider::read()` with one coherent synchronized UTC/64-bit
    monotonic millisecond snapshot. Report `synchronized=false` whenever time is not
    trustworthy. No SNTP service, clock accuracy estimator or board timer adapter is
-   supplied in this checkpoint. Do not pass an unextended wrapping 32-bit `millis()`.
+   supplied in this checkpoint. MonitoredClock now validates an injected TimeSource;
+   see [CLOCK_AND_ACQUISITION.md](CLOCK_AND_ACQUISITION.md). Do not pass an unextended wrapping 32-bit `millis()`.
 3. Implement `CommandPolicy::permits()` using both an explicit implemented-operation
    allowlist and `validateChannel(command, validatedSpec)`. Deny unknown channels.
    Policy callbacks must be bounded and side-effect-free in production.
@@ -66,7 +67,7 @@ Clock validity, monotonic progression and network authentication depend on adapt
 ## Footprint and runnable verification
 
 Measured native x86-64 object sizes: Dispatcher 11,000 bytes (including its decoder),
-Device 34,920 bytes (checkpoint04). Allocate long-lived storage on constrained targets; do not put
+Device 34,928 bytes (checkpoint05). Allocate long-lived storage on constrained targets; do not put
 these objects on a small task stack. These are not ESP32 firmware RAM measurements
 and exclude TLS, stack and transport buffers. The dispatcher itself does not allocate
 heap memory. Host test fixtures use std::string and ordinary dynamic memory.

@@ -1,0 +1,3 @@
+==222==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+==222==WARNING: reading executable name failed with errno 2, some stack frames may not be symbolized
+PASS: real-host round trip: success, callback failure, expiry without callback, duplicate retry, and late host rejection; synthetic sensor=42.5; no broker/hardware.
