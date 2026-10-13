@@ -1,11 +1,11 @@
-# CodonTraceSwarm — rebuild checkpoint 11
+# CodonTraceSwarm — rebuild checkpoint 12
 
 **An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
 
-This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL** until remaining integration and completeness gates are closed. Local callbacks, registry-backed grants and host replies are now included; desktop broker execution is now tested; board execution is not.
+This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL**. Phase 2 remains **PARTIAL**. Phase 3 drivers in this tree are mock-only. Phase 4 and phase 5 are **BLOCKED**. `architectures=*` is not tested board support.
 
 Target: **all Arduino-supported board families**, with explicit memory profiles and
-platform adapters. No board certification is implied; see [Arduino portability](docs/ARDUINO_PORTABILITY.md).
+platform adapters. No board certification is implied; see [Arduino portability](docs/ARDUINO_PORTABILITY.md) and [phase gates](docs/PHASE_GATES.md).
 
 ## Implemented
 
@@ -37,14 +37,21 @@ platform adapters. No board certification is implied; see [Arduino portability](
 
 - Live desktop broker crash/recovery now exercises the C++ reconnect policy; see [BROKER_LAB.md](docs/BROKER_LAB.md).
 
-- Optional [ArduinoMqttClient adapter](docs/ARDUINO_MQTT_ADAPTER.md): callback inbox and QoS1 reply publication, tested against pinned upstream using native platform shims.
+- Optional [ArduinoMqttClient adapter](docs/ARDUINO_MQTT_ADAPTER.md): callback inbox and QoS1 reply publication, tested against pinned upstream using native platform shims. It is synchronous and may block. It does not implement the nonblocking connect seam.
+
+- Reconnect orchestrator: fresh hello before readings, reply confirm only after full QoS1 write, explicit in-flight loss counter, and clock gate. See [RECONNECT_ORCHESTRATOR.md](docs/RECONNECT_ORCHESTRATOR.md).
+
+- Separate [nonblocking connect attempt](docs/NONBLOCKING_ATTEMPT.md) exercised with a fake client.
+
+- [Sample scheduler](docs/SAMPLE_SCHEDULER.md): next-deadline `set_rate`, no burst catch-up, stored min/max.
+
+- Six [mock drivers](docs/MOCK_DRIVERS.md) and an [FDC2214 guard](docs/FDC2214_GUARD.md) that does not link FDCxCapSense. Status table: [DRIVER_STATUS.md](docs/DRIVER_STATUS.md). Mock values are SYNTHETIC.
 
 ## Not included yet
 
 Production board MQTT/TLS adapters, Wi-Fi connection management, board clock synchronization,
-sensor hardware drivers, shadow/active policies, Arduino examples,
-Arduino board-family compilation and physical hardware qualification. Command grants default to empty. Applications explicitly grant only installed operations
-before begin; the hello and local policy use the same registry. This checkpoint is not deployable board firmware.
+physical sensor drivers, shadow/active policies, board-family compilation and physical hardware qualification. The Arduino MQTT adapter is not a nonblocking client. Command grants default to empty. Applications explicitly grant only installed operations
+before begin; the hello and local policy use the same registry. This checkpoint is not deployable board firmware. Hardware bench, ESP32 flash, overnight soak, and scientific RQ results are NOT_RUN.
 
 ## Build and test
 

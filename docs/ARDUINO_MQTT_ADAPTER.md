@@ -85,6 +85,16 @@ underlying board TLS operation. Whole-system RAM, malicious streaming timing, st
 certificate storage and SDK cancellation require target-specific validation. Do not
 use it as a hard realtime/nonblocking implementation or claim zero allocation globally.
 
+## Not the checkpoint 12 connect seam
+
+`ArduinoMqttAdapter` does not implement `cts::NonblockingAttempt` or
+`cts::ConnectAttemptClient`, and `ReconnectOrchestrator` does not call this
+adapter. `receive`, `publishReply`, `MqttClient::poll`, `beginMessage`, `write`,
+and `endMessage` stay synchronous and may block. A QoS1 `endMessage` can wait
+inside the caller for PUBACK. Partial progress, cancel, timeout, and stale
+generation handling belong to the separate attempt seam, which is tested with a
+fake client. Do not describe this adapter as that state machine.
+
 For cooperative/nonblocking board operation, a different asynchronous backend/worker
 and a proven bounded cancellation mechanism remain required. No board is cross-compiled
 or physically tested by the native shim test; all board-family status stays NOT_RUN.

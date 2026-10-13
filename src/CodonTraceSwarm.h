@@ -128,6 +128,7 @@ public:
 
 private:
   friend class CommandSession;
+  friend class SampleScheduler;
   bool txHeld_ = false;
   struct Channel {
     char name[64] = {}, config[64] = {}, json[2048] = {};

@@ -1,4 +1,36 @@
+# Checkpoint 12
+
+- Version 0.12.0. Library URL is https://github.com/Parvaz-Jamei/CodonTraceSwarm.
+  `architectures=*` remains and is not tested board support.
+- Added a single-threaded reconnect orchestrator: fresh hello before readings on
+  each generation, reply confirmation only after full write and QoS1, and an
+  explicit loss counter when a publish is in flight at disconnect.
+- Added a separate nonblocking connect attempt seam (start, partial progress,
+  cancel, timeout, stale generation). The synchronous Arduino MQTT adapter does
+  not implement it and may still block.
+- Independent review rejected an abandoned connect and a second live client after
+  an accepted handshake. Failure and close now cancel that client before the
+  next start. A serialized reading whose first publish step fails returns Busy
+  and is retried, not Failed. An unrepresentable timeout is Fault or TimedOut.
+- Added SampleScheduler: set_rate moves only the next deadline, missed slots
+  drop instead of bursting, and rates outside the stored channel min/max fail.
+- Added six optional mock drivers behind an injected bus. Invalid reads are not
+  NaN and are not a valid numeric zero. FDC1004 rejects a second CAPDAC apply.
+- Added an FDC2214 guard that does not link FDCxCapSense
+  `215031db9a6bc37ac26cd1d2b6dca96bbe3b4da7`. The two frequency paths differ,
+  divider 0 is rejected and not replaced by 1, and FDC211x precise conversion
+  is NotSupported. Capacitance is not derived without an explicit L and
+  parasitic model.
+- Hardware bench, ESP32 flash, overnight soak, and scientific RQ stay NOT_RUN.
+  Phase 2 remains PARTIAL. Phase 3 is mock-only. Phases 4 and 5 are BLOCKED.
+  Mock sensor numbers are SYNTHETIC.
+- Connect-attempt failures cancel the client before the phase leaves Running.
+  A refused handshake abandons a Succeeded client before policy.lost. A
+  serialized reading queued for retry returns Busy, not Failed. An
+  unrepresentable connect deadline is Fault at start and TimedOut at poll.
+
 # Checkpoint 11
+
 
 - Added optional board-neutral ArduinoMqttClient0.1.8 adapter with injected MQTT client.
 - Exclusive callback queues concurrent downlink during PUBACK waits; initial polling-only

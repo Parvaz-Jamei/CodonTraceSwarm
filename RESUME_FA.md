@@ -1,11 +1,13 @@
-# ادامه از بستهٔ ۱۱
+# ادامه از بستهٔ ۱۲
 
-بسته تجمعی است؛ هدف تمام خانواده‌های Arduino و فاز ۲ همچنان در حال تکمیل است.
+بسته تجمعی است. نسخهٔ کتابخانه 0.12.0 است و نشانی آن https://github.com/Parvaz-Jamei/CodonTraceSwarm است. `architectures=*` فقط اجازهٔ فهرست Arduino است و به معنی آزمون‌شده بودن بردها نیست.
 
-جدید: src/cts/ArduinoMqttAdapter.h آداپتر اختیاری ArduinoMqttClient0.1.8. MQTT واقعی تزریق می‌شود؛ callback فقط بایت‌ها را در NetworkInbox صف می‌کند، publishReply پس از PUBACK پاسخ CommandSession را آزاد می‌کند. retained/topic/QoS/اندازه/خواندن و نوشتن ناقص بررسی می‌شوند. polling-only اولیه به علت دورریختن فرمان هم‌زمان در upstream کنار گذاشته شد؛ regression هم‌زمانی با خود MqttClient.cpp اجرا می‌شود.
+جدید در src/cts: هماهنگ‌کنندهٔ reconnect، درز تلاش غیرمسدودکننده، SampleScheduler، شش درایور mock با bus تزریقی، و نگهبان FDC2214. آداپتر ArduinoMqttAdapter همچنان همگام است و ممکن است block کند؛ آن درز را پیاده نمی‌کند.
 
-وابستگی خارجی LGPL کپی نشده؛ SHA4699dda841c08b01036cd14412330bddc6c94edb. دستور tools/check_arduino_mqtt.py و فایل docs/ARDUINO_MQTT_ADAPTER.md را بخوان. تست shim بومی به معنی کامپایل روی برد یا TLS واقعی نیست. نتایج در VALIDATION.md.
+قواعدی که تست شده‌اند: بدون clockReady اتصال شروع نمی‌شود؛ پس از هر نسل اتصال، hello تازه پیش از reading ساخته می‌شود؛ اگر publish شکست بخورد یا QoS1 تمام نشود پاسخ CommandSession معلق می‌ماند؛ قطع هنگام publishِ در جریان یک loss است نه تحویل. set_rate فقط مهلت بعدی را عوض می‌کند و عقب‌ماندگی را انفجاری جبران نمی‌کند. SHT فشار ندارد. CAPDAC دوم FDC1004 رد می‌شود. تقسیم‌کنندهٔ صفر FDC2214 خطا است و با 1 عوض نمی‌شود. خواندن نامعتبر حسگر صفر معتبر روی سیم نمی‌سازد.
 
-backend همگام و بالقوه blocking است. backend غیرمسدودکننده، ساعت/Client امن واقعی هر خانواده، هماهنگ‌کنندهٔ hello/پاسخ معلق در reconnect، قطع حین ارسال و آزمون RAM/برد هنوز باقی است. پیش از اعلام کامل‌شدن فاز ۲ این‌ها باید بسته شوند. سپس scheduler و درایورهای واقعی فاز ۳.
+FDCxCapSense لینک نشده؛ pin همان commit `215031db9a6bc37ac26cd1d2b6dca96bbe3b4da7` است. اعداد حسگر SYNTHETIC هستند.
 
-میزبان آزمون همچنان74c7b3f15c2d093da03e392094814d63a4997c2c و origin/main مشاهده‌شدهfa7e7e995afe3ad7c0970ed783948d0336ac91f3 است. هیچ push یا تغییر source میزبان انجام نشده.
+فاز ۲ هنوز PARTIAL است. فاز ۳ فقط mock است. فاز ۴ (موتور/پنل) و فاز ۵ (soak و پژوهش) BLOCKED هستند. میز سخت‌افزار، فلش ESP32، soak شبانه‌روزی و نتیجهٔ RQ علمی NOT_RUN هستند و PASS نیستند. جدول docs/DRIVER_STATUS.md و docs/PHASE_GATES.md را ببینید.
+
+میزبان آزمون همچنان 74c7b3f15c2d093da03e392094814d63a4997c2c است. هیچ push یا تغییر source میزبان انجام نشده.
