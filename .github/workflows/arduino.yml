@@ -36,6 +36,9 @@ jobs:
           arduino-cli version
           arduino-cli core update-index
           arduino-cli core install arduino:mbed_nano
+          rm -rf "$RUNNER_TEMP/sketches"
+          cp -a examples "$RUNNER_TEMP/sketches"
           for ex in CheckInclude CoreSmoke PortableClock; do
-            arduino-cli compile --fqbn arduino:mbed_nano:nano33ble "examples/$ex"
+            arduino-cli compile --fqbn arduino:mbed_nano:nano33ble \
+              --library "$GITHUB_WORKSPACE" "$RUNNER_TEMP/sketches/$ex"
           done
