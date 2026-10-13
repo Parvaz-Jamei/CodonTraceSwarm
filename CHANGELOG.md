@@ -1,3 +1,4 @@
+- 0.12.4: Examples print a local Serial result and say they do not connect or measure. The Library Manager sentence no longer reads like a live sensor product. Still not flashed.
 - 0.12.3: PortableClock includes the library header so Arduino IDE on Windows, Linux, and macOS can find Millis32. Examples compiled for Nano 33 BLE; not flashed.
 - 0.12.2: Drop boards whose SRAM cannot hold the current profile. Eligible architectures need at least 128 KB. None of them were compiled.
 - 0.12.1: CoreSmoke no longer sets wifi=false, so begin/hello can succeed; still no socket.

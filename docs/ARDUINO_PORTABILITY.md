@@ -1,8 +1,9 @@
-# Arduino portability — version 0.12.2
+# Arduino portability — version 0.12.4
 
 The current profile is not for every Arduino board. `library.properties` lists only
 architectures whose boards have enough SRAM for this build. That list is still
-**not** a compile, flash, or bench result. No board has been cross-compiled here.
+**not** a compile, flash, or bench result. The three examples print one local
+Serial line and were compiled for Nano 33 BLE only. Nothing was flashed.
 
 ## Why boards were removed
 
@@ -47,10 +48,11 @@ the same reason: one id covers the 20 KB parts.
 | renesas_portenta | Portenta C33 | 512 KB | NOT_RUN |
 
 Eligibility is not Wi-Fi, TLS, or a sensor driver. `CoreSmoke` still constructs a
-full `Device`. On Nano 33 BLE that sketch linked at 90,768 bytes of flash and
-87,608 bytes of RAM. `CheckInclude` and `PortableClock` also compiled. Nothing
-was uploaded. The same source is what Arduino IDE builds on Windows, Linux, and
-macOS; only Nano 33 BLE was compiled in this environment.
+full `Device` and prints the local hello. On Nano 33 BLE that sketch linked at
+91,192 bytes of flash and 87,600 bytes of RAM. `CheckInclude` linked at 85,392
+flash and 44,552 RAM. `PortableClock` linked at 85,744 flash and 44,576 RAM.
+Nothing was uploaded. The same source is what Arduino IDE builds on Windows,
+Linux, and macOS; only Nano 33 BLE was compiled in this environment.
 
 ## Compile an eligible board
 

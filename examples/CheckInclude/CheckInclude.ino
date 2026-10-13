@@ -1,5 +1,10 @@
+#include <Arduino.h>
 #include <CodonTraceSwarm.h>
 
-// Compile check only. This sketch does not connect, read a sensor, or send MQTT.
-void setup() {}
+// Shows that the header is visible. Does not connect, read a sensor, or send MQTT.
+void setup() {
+  Serial.begin(115200);
+  for (int i = 0; i < 50 && !Serial; ++i) delay(10);
+  Serial.println("CodonTraceSwarm header included. No network and no sensor.");
+}
 void loop() {}

@@ -1,6 +1,6 @@
 # Phase gates — checkpoint 12
 
-`library.properties` lists only architectures with at least 128 KB SRAM. It is **not** tested board support. AVR, megaAVR, SAMD21, UNO R4, ESP8266, Due and other smaller parts are unsupported. No remaining family was compiled, flashed, or bench-tested.
+`library.properties` lists only architectures with at least 128 KB SRAM. It is **not** tested board support. AVR, megaAVR, SAMD21, UNO R4, ESP8266, Due and other smaller parts are unsupported. Nano 33 BLE examples were compiled and not flashed. No other family was compiled, flashed, or bench-tested.
 
 Checkpoint number is not a phase number. Phase 2 stays **PARTIAL**. Phase 3 drivers are **mock-only**. Phase 4 engine/panel and phase 5 soak/research are **BLOCKED**.
 

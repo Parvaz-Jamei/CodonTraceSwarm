@@ -1,6 +1,6 @@
-# CodonTraceSwarm — rebuild checkpoint 12
+# CodonTraceSwarm
 
-**An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
+**A C++11 message core. The Arduino examples print a local Serial result and do not join a network or read a sensor.**
 
 This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL**. Phase 2 remains **PARTIAL**. Phase 3 drivers in this tree are mock-only. Phase 4 and phase 5 are **BLOCKED**. `architectures` lists only cores with at least 128 KB SRAM. That is not tested board support. AVR, SAMD21, UNO R4, ESP8266 and Due are excluded.
 
@@ -30,7 +30,7 @@ Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO
 
 - Real loopback TLS MQTT laboratory: two actual C++ nodes, broker ACLs and pinned Genesis host; see [BROKER_LAB.md](docs/BROKER_LAB.md).
 
-- Arduino library metadata, board-selectable compile/report tool, two sketches and generic wrapping millis counter.
+- Arduino library metadata and three sketches. Each sketch prints a local Serial result only. None of them opens a socket.
 
 - Board-neutral reconnect policy with bounded backoff, timeout, clock gating and attempt tokens; see [RECONNECT_POLICY.md](docs/RECONNECT_POLICY.md).
 
