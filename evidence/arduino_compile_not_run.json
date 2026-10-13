@@ -1,0 +1,8 @@
+{
+  "fqbn": "arduino:avr:uno",
+  "example": "CoreSmoke",
+  "status": "NOT_RUN",
+  "hardware_tested": false,
+  "note": "Compile only; not certification of board support.",
+  "reason": "arduino-cli unavailable; no board compilation performed"
+}

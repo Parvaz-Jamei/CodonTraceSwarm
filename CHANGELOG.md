@@ -1,3 +1,19 @@
+# Checkpoint 08
+
+- Corrected target scope to all Arduino-supported board families, not ESP32-only.
+- Added Arduino library metadata, portable counter and two example sketches.
+- Added explicit-FQBN compile runner with FAIL/NOT_RUN separation and evidence output.
+- Added wrap/rollback counter regression and documented small-memory/profile gaps.
+- No production transport, physical sensor or universal board-compatibility claim.
+
+# Checkpoint 07
+
+- Added a real loopback aMQTT/Paho TLS laboratory with two actual C++ library nodes.
+- Verified certificate/hostname checks, authentication, node ACLs, QoS1 replies, duplicate suppression, retained rejection and controlled broker restart.
+- Re-ran 6,383 native assertions and host integration; 11 live broker scenarios passed with ASan/UBSan C++ nodes.
+- Sanitizer builds now fail on undefined behavior rather than recovering silently.
+- Desktop test adapter only; production board adapter and independent CP07 review remain pending.
+
 # Checkpoint 06
 
 - Added fixed-capacity network byte inbox and strict fragment metadata checks.

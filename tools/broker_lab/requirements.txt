@@ -1,0 +1,3 @@
+# Test-only Python dependencies, not firmware dependencies.
+amqtt==0.12.1
+paho-mqtt==2.1.0

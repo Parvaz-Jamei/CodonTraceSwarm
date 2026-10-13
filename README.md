@@ -1,8 +1,11 @@
-# CodonTraceSwarm — rebuild checkpoint 06
+# CodonTraceSwarm — rebuild checkpoint 08
 
 **An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
 
-This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL** until remaining integration and completeness gates are closed. Local callbacks, registry-backed grants and host replies are now included; board/network execution is not.
+This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL** until remaining integration and completeness gates are closed. Local callbacks, registry-backed grants and host replies are now included; desktop broker execution is now tested; board execution is not.
+
+Target: **all Arduino-supported board families**, with explicit memory profiles and
+platform adapters. No board certification is implied; see [Arduino portability](docs/ARDUINO_PORTABILITY.md).
 
 ## Implemented
 
@@ -26,11 +29,15 @@ This is a newly tested rebuild after the previous workspace was lost. It is **no
 
 - Bounded fragmented network-byte handoff with exact topic/session binding; see [NETWORK_INBOX.md](docs/NETWORK_INBOX.md).
 
+- Real loopback TLS MQTT laboratory: two actual C++ nodes, broker ACLs and pinned Genesis host; see [BROKER_LAB.md](docs/BROKER_LAB.md).
+
+- Arduino library metadata, board-selectable compile/report tool, two sketches and generic wrapping millis counter.
+
 ## Not included yet
 
-MQTT/TLS, Wi-Fi connection management, broker-delivered acknowledgment, board clock synchronization,
+Production board MQTT/TLS adapters, Wi-Fi connection management, board clock synchronization,
 sensor hardware drivers, shadow/active policies, Arduino examples,
-ESP32 compilation and physical hardware qualification. Command grants default to empty. Applications explicitly grant only installed operations
+Arduino board-family compilation and physical hardware qualification. Command grants default to empty. Applications explicitly grant only installed operations
 before begin; the hello and local policy use the same registry. This checkpoint is not deployable board firmware.
 
 ## Build and test
