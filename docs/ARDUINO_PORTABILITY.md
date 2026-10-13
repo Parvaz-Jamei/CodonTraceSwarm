@@ -1,9 +1,11 @@
-# Arduino portability — version 0.12.7
+# Arduino portability — version 0.12.8
 
 The current profile is not for every Arduino board. `library.properties` lists only
 architectures whose boards have enough SRAM for this build. That list is still
-**not** a compile, flash, or bench result. The three examples print one local
-Serial line and were compiled for Nano 33 BLE only. Nothing was flashed.
+**not** a compile, flash, or bench result. Eleven examples print a local
+Serial line and were compiled for FQBN `arduino:mbed_nano:nano33ble` only.
+That workflow matrix is three operating systems, not three board families.
+Local sketches do not connect or read a chip. Nothing was flashed.
 
 ## Why boards were removed
 
@@ -49,7 +51,7 @@ the same reason: one id covers the 20 KB parts.
 
 Eligibility is not Wi-Fi or TLS. Optional sensor headers call another library; they were compiled here and not flashed. `CoreSmoke` still constructs a
 full `Device` and prints the local hello. On Nano 33 BLE that sketch linked at
-91,264 bytes of flash and 87,616 bytes of RAM. `CheckInclude` linked at 85,392
+91,288 bytes of flash and 87,616 bytes of RAM. `CheckInclude` linked at 85,392
 flash and 44,552 RAM. `PortableClock` linked at 85,744 flash and 44,576 RAM.
 Nothing was uploaded. The same source is what Arduino IDE builds on Windows,
 Linux, and macOS; only Nano 33 BLE was compiled in this environment.

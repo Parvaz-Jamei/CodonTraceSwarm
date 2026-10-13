@@ -45,8 +45,9 @@ struct Link : cts::ConnectAttemptClient {
   }
 };
 struct Pub : cts::QosPublisher {
-  enum class Mode { Complete, Partial, Fail, WriteOnly } mode = Mode::Complete;
-  int steps = 0, cancels = 0, completed = 0;
+  enum class Mode { Complete, Partial, Fail, WriteOnly, Regress, Grow } mode =
+      Mode::Complete;
+  int steps = 0, cancels = 0, completed = 0, script = 0;
   char last[8192] = {};
   char log[8][8192] = {};
   bool step(uint64_t, const char *data, size_t size, size_t &accepted,
@@ -62,6 +63,21 @@ struct Pub : cts::QosPublisher {
       writeComplete = false;
       qos1Complete = false;
       return false;
+    }
+    if (mode == Mode::Regress) {
+      accepted = script == 0 ? (size > 4 ? 4 : size) : (size > 1 ? 1 : 0);
+      ++script;
+      writeComplete = false;
+      qos1Complete = false;
+      return true;
+    }
+    if (mode == Mode::Grow) {
+      accepted = script == 0 ? (size > 4 ? 4 : size) : (size > 8 ? 8 : size);
+      if (script < 8)
+        ++script;
+      writeComplete = false;
+      qos1Complete = false;
+      return true;
     }
     if (mode == Mode::Partial) {
       accepted = size > 4 ? 4 : size;
@@ -337,6 +353,7 @@ int main() {
     CHECK(std::strcmp(env.pub.log[env.pub.completed - 1], frozen) == 0);
     CHECK(kind(env.pub.log[env.pub.completed - 1], "reading"));
     CHECK(env.orch.health().readings == 1);
+    CHECK(env.orch.losses() == 0);
     CHECK(env.orch.readingsAllowed());
   }
   {
@@ -364,6 +381,161 @@ int main() {
     CHECK(env.orch.poll(again, true, 0) == OrchCode::Ok);
     CHECK(!env.link.stacked);
     CHECK(env.link.maxLive == 1);
+  }
+  {
+    Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.helloComplete());
+    env.pub.mode = Pub::Mode::Fail;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Busy);
+    CHECK(env.orch.losses() == 0);
+    CHECK(!env.orch.publishActive());
+    CHECK(!env.orch.readingsAllowed());
+    const auto gen = env.orch.generation();
+    CHECK(env.orch.onDisconnected(gen, 2, 0) == OrchCode::Ok);
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.onDisconnected(gen, 3, 0) == OrchCode::Stale);
+    CHECK(env.orch.losses() == 1);
+    env.pub.mode = Pub::Mode::Complete;
+    env.link.done = true;
+    const int before = env.pub.completed;
+    const auto due = env.policy.nextAttemptMs();
+    CHECK(env.orch.poll(due, true, 0) == OrchCode::Ok);
+    CHECK(env.pub.completed == before + 1);
+    CHECK(kind(env.pub.log[env.pub.completed - 1], "hello"));
+    CHECK(env.orch.helloComplete());
+    CHECK(env.orch.losses() == 1);
+    std::cout << "probe staged_retry_loss before=0 after=" << env.orch.losses()
+              << " stale=1\n";
+  }
+  {
+    Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.helloComplete());
+    env.pub.mode = Pub::Mode::Fail;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Busy);
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.poll(1, false, 0) == OrchCode::Refused);
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.poll(1, false, 0) == OrchCode::Refused);
+    CHECK(env.orch.losses() == 1);
+  }
+  {
+    Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.helloComplete());
+    CHECK(env.orch.readingsAllowed());
+    env.pub.mode = Pub::Mode::Partial;
+    const int cancels = env.pub.cancels;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    CHECK(env.pub.cancels == cancels);
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.poll(9999, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    CHECK(env.pub.cancels == cancels);
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.poll(10000, true, 0) == OrchCode::Ok);
+    CHECK(!env.orch.publishActive());
+    CHECK(env.orch.helloComplete());
+    CHECK(env.orch.readingsAllowed());
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.pub.cancels == cancels + 1);
+    CHECK(env.orch.health().publishFailures == 0);
+  }
+  {
+    Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.helloComplete());
+    env.pub.mode = Pub::Mode::Partial;
+    const int cancels = env.pub.cancels;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    CHECK(env.pub.cancels == cancels);
+    CHECK(env.orch.poll(1000000000ull, true, 0) == OrchCode::Ok);
+    CHECK(!env.orch.publishActive());
+    CHECK(env.orch.helloComplete());
+    CHECK(env.orch.readingsAllowed());
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.pub.cancels == cancels + 1);
+    std::cout << "probe partial_stall active=" << env.orch.publishActive()
+              << " cancels=" << env.pub.cancels
+              << " allowed=" << env.orch.readingsAllowed()
+              << " losses=" << env.orch.losses()
+              << " hello=" << env.orch.helloComplete() << "\n";
+  }
+  {
+    Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    env.pub.mode = Pub::Mode::Grow;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    CHECK(env.orch.poll(9000, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.poll(18999, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.poll(19000, true, 0) == OrchCode::Ok);
+    CHECK(!env.orch.publishActive());
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.readingsAllowed());
+    CHECK(env.orch.helloComplete());
+  }
+  {
+    Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    env.pub.mode = Pub::Mode::Regress;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Ok);
+    CHECK(env.orch.publishActive());
+    char frozen[8192];
+    std::snprintf(frozen, sizeof(frozen), "%s", env.pub.last);
+    CHECK(env.orch.poll(1, true, 0) == OrchCode::Ok);
+    CHECK(!env.orch.publishActive());
+    CHECK(!env.orch.readingsAllowed());
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.health().publishFailures == 1);
+    CHECK(env.pub.cancels == 1);
+    env.pub.mode = Pub::Mode::Complete;
+    const int before = env.pub.completed;
+    CHECK(env.orch.poll(2, true, 0) == OrchCode::Ok);
+    CHECK(env.pub.completed == before + 1);
+    CHECK(std::strcmp(env.pub.log[env.pub.completed - 1], frozen) == 0);
+    CHECK(env.orch.health().readings == 1);
+    CHECK(env.orch.losses() == 0);
+    CHECK(env.orch.readingsAllowed());
+  }
+  {
+    Env env;
+    CHECK(env.orch.poll(100, true, 0) == OrchCode::Ok);
+    CHECK(env.policy.state() != LinkState::Fault);
+    const int starts = env.link.starts;
+    const int cancels = env.link.cancels;
+    const auto rolled = env.orch.poll(99, true, 0);
+    CHECK(rolled == OrchCode::Fault);
+    CHECK(env.policy.state() == LinkState::Fault);
+    CHECK(env.link.starts == starts);
+    CHECK(env.link.cancels == cancels + 1);
+    CHECK(env.orch.poll(99, true, 0) == OrchCode::Fault);
+    CHECK(env.link.starts == starts);
+    std::cout << "probe rollback="
+              << (rolled == OrchCode::Fault &&
+                          env.policy.state() == LinkState::Fault
+                      ? "Fault"
+                      : "not-fault")
+              << " starts=" << env.link.starts << "\n";
   }
   if (failures)
     std::cerr << "checks=" << checks << " failures=" << failures << "\n";

@@ -30,7 +30,7 @@ Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO
 
 - Real loopback TLS MQTT laboratory: two actual C++ nodes, broker ACLs and pinned Genesis host; see [BROKER_LAB.md](docs/BROKER_LAB.md).
 
-- Arduino library metadata and three sketches. Each sketch prints a local Serial result only. None of them opens a socket.
+- Arduino library metadata and eleven local sketches: `CheckInclude`, `CoreSmoke`, `PortableClock`, `Bme280Adafruit`, `Sht4xAdafruit`, `Ina219Adafruit`, `Vl53l0xAdafruit`, `Hx711Bogde`, `Fdc1004Protocentral`, `FdcxCapSense`, and `AnySensorLibrary`. Each sketch prints a local Serial result only. None opens a socket or connects. They do not read a chip: a failed `begin` does not call the getter, and nothing in this tree was flashed.
 
 - Board-neutral reconnect policy with bounded backoff, timeout, clock gating and attempt tokens; see [RECONNECT_POLICY.md](docs/RECONNECT_POLICY.md).
 
@@ -44,12 +44,12 @@ Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO
 
 - [Sample scheduler](docs/SAMPLE_SCHEDULER.md): next-deadline `set_rate`, no burst catch-up, stored min/max.
 
-- Optional sensor headers call Adafruit BME280, SHT4x, INA219, VL53L0X, Bogde HX711, ProtoCentral FDC1004, and FDCxCapSense. Any other library passes a finite number through `cts::scalarIfFinite`. Compile-tested on Nano 33 BLE, not flashed. The six `ByteBus` drivers remain synthetic test doubles.
+- Optional sensor headers call Adafruit BME280, SHT4x, INA219, VL53L0X, Bogde HX711, ProtoCentral FDC1004, and FDCxCapSense. Any other library passes a finite number through `cts::scalarIfFinite`. Compile-tested for FQBN `arduino:mbed_nano:nano33ble` only, not flashed. The six `ByteBus` drivers remain synthetic test doubles.
 
 ## Not included yet
 
 Production board MQTT/TLS adapters, Wi-Fi connection management, board clock synchronization,
-physical sensor drivers, shadow/active policies, board-family compilation and physical hardware qualification. The Arduino MQTT adapter is not a nonblocking client. Command grants default to empty. Applications explicitly grant only installed operations
+bench-qualified sensor readings, shadow/active policies, board-family compilation and physical hardware qualification. The Arduino MQTT adapter is not a nonblocking client. Command grants default to empty. Applications explicitly grant only installed operations
 before begin; the hello and local policy use the same registry. This checkpoint is not deployable board firmware. Hardware bench, ESP32 flash, overnight soak, and scientific RQ results are NOT_RUN.
 
 ## Build and test

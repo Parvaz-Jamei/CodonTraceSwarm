@@ -33,15 +33,22 @@ struct OrchHealth {
 };
 // Single-threaded reconnect owner. No threads, String, or dynamic allocation.
 // On each new connection generation a fresh Device hello is serialized before
-// any reading. confirmReplyPublished runs only after a full write and QoS1
-// completion. A disconnect during an in-flight publish counts as a loss and
-// does not count as delivery. clockReady false never starts a connect attempt.
+// any reading. repliesConfirmed / confirmReplyPublished means the publisher
+// reported a full write and QoS1 completion (transport ack), not that the
+// Genesis process accepted the payload. A disconnect during an in-flight
+// publish counts as one loss and does not count as delivery. Dropping a staged
+// Hello or Reading retry counts as one loss, and does not count a second time
+// if aborting the in-flight publish already counted it. clockReady false never
+// starts a connect attempt.
 // A handshake the inbox or policy refuses is abandoned: that generation's
 // client is cancelled before policy.lost, including after Succeeded.
 // Once Device::reading has serialized, those exact bytes are retried. The
 // caller is told Busy, not Failed, and readingsAllowed() is false while that
 // retry is queued. Failed means those bytes will not be published later.
-// ArduinoMqttAdapter is a different, synchronous backend and is not used here.
+// accepted from the publisher is cumulative. A publish that makes no forward
+// progress for attemptTimeoutMs is cancelled once, counts one loss, and is
+// left inactive. ArduinoMqttAdapter is a different, synchronous backend and
+// is not used here.
 class ReconnectOrchestrator {
 public:
   ReconnectOrchestrator(Device &device, CommandSession &session,
@@ -81,7 +88,7 @@ private:
   OrchHealth health_;
   char wire_[TxBytes] = {};
   size_t size_ = 0, accepted_ = 0;
-  uint64_t generation_ = 0, replySeq_ = 0;
+  uint64_t generation_ = 0, replySeq_ = 0, progressMs_ = 0;
   OutKind kind_ = OutKind::None;
   OutKind retryKind_ = OutKind::None;
   bool online_ = false, helloSerialized_ = false, helloComplete_ = false,
@@ -91,9 +98,9 @@ private:
   void abortPublish(bool loss) noexcept;
   bool stepPublish() noexcept;
   void finishPublish() noexcept;
-  bool startKind(OutKind) noexcept;
-  void startReply() noexcept;
-  void service() noexcept;
+  bool startKind(OutKind, uint64_t now) noexcept;
+  void startReply(uint64_t now) noexcept;
+  void service(uint64_t now) noexcept;
   void handleClose() noexcept;
   void driveAttempt(uint64_t now, bool clockReady, uint32_t jitter) noexcept;
 };

@@ -6,7 +6,8 @@
 static cts::Device device;
 static char message[cts::TxBytes];
 static Adafruit_SHT4x chip;
-static const uint64_t kNotAClockMs = 1;
+static bool chipOpened = false;
+static bool codecReady = false;
 
 static cts::ChannelSpec channel(const char *name, const char *quantity,
                                 const char *unit) {
@@ -23,26 +24,36 @@ static cts::ChannelSpec channel(const char *name, const char *quantity,
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  const bool opened = chip.begin();
+  chipOpened = chip.begin();
   cts::SessionConfig session;
   session.swarmId = "sensor";
   session.nodeId = "node";
   session.bootId = "sht4x-adafruit";
-  session.wifi = true;
-  const bool defined =
+  session.wifi = false;
+  codecReady =
       device.define(channel("temperature", "temperature", "degC")) ==
           cts::Error::Ok &&
       device.define(channel("humidity", "humidity", "percent")) ==
           cts::Error::Ok &&
       device.begin(session) == cts::Error::Ok;
-  Serial.println(defined ? "codec ready" : "codec failed");
-  Serial.println(opened ? "Adafruit SHT4x begin returned true. Not a bench result."
-                        : "Adafruit SHT4x begin returned false.");
-  Serial.println("SHT4x pressure is unsupported. Not sent.");
+  Serial.println(codecReady ? "codec ready" : "codec failed");
+  Serial.println(chipOpened ? "Adafruit SHT4x begin returned true. Not a bench result. Not flashed."
+                            : "Adafruit SHT4x begin returned false. Getter not called for this boot.");
+  Serial.println("SHT4x pressure is unsupported. Not sent. Timestamp is not a clock.");
 }
 void loop() {
-  cts::Sample temperature = cts::sht4xTemperature(chip, kNotAClockMs);
-  cts::Sample humidity = cts::sht4xHumidity(chip, kNotAClockMs);
+  if (!chipOpened) {
+    Serial.println("SHT4x begin failed. Getter not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
+  cts::Sample temperature = cts::sht4xTemperature(chip, 0);
+  cts::Sample humidity = cts::sht4xHumidity(chip, 0);
+  if (!codecReady) {
+    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
   cts::Error temperatureEncoded =
       device.reading("temperature", temperature, message, sizeof message);
   cts::Error humidityEncoded =
@@ -55,6 +66,6 @@ void loop() {
   Serial.print(humidity.valid ? "true" : "false");
   Serial.print(" encode=");
   Serial.print(cts::errorName(humidityEncoded));
-  Serial.println(". Local JSON only. Not sent. Not a bench result.");
+  Serial.println(". Local JSON only. Not sent. Not a bench result. Timestamp is not a clock.");
   delay(3000);
 }

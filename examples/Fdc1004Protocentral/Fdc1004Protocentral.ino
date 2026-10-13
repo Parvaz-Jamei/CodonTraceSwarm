@@ -3,15 +3,17 @@
 #include <CodonTraceSwarm.h>
 #include <cts/sensors/Fdc1004Protocentral.h>
 
+// Does not include FDCxCapSense_FDC1004.h. That header also declares FDC1004.
 static cts::Device device;
 static char message[cts::TxBytes];
 static FDC1004 chip;
-static const uint64_t kNotAClockMs = 1;
+static bool chipOpened = false;
+static bool codecReady = false;
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  const bool opened = chip.begin();
+  chipOpened = chip.begin();
   cts::ChannelSpec channel;
   channel.name = "capacitance";
   channel.quantity = "capacitance";
@@ -23,18 +25,32 @@ void setup() {
   session.swarmId = "sensor";
   session.nodeId = "node";
   session.bootId = "fdc1004-protocentral";
-  session.wifi = true;
-  device.define(channel);
-  device.begin(session);
-  Serial.println(opened ? "ProtoCentral FDC1004 begin returned true. Not a bench result."
-                        : "ProtoCentral FDC1004 begin returned false.");
+  session.wifi = false;
+  codecReady = device.define(channel) == cts::Error::Ok &&
+               device.begin(session) == cts::Error::Ok;
+  Serial.println(codecReady ? "codec ready" : "codec failed");
+  Serial.println(chipOpened ? "ProtoCentral FDC1004 begin returned true. Not a bench result. Not flashed."
+                            : "ProtoCentral FDC1004 begin returned false. Getter not called for this boot.");
+  Serial.println("Timestamp is not a clock.");
 }
 void loop() {
-  cts::Sample sample = cts::protocentralFdc1004Picofarads(chip, FDC1004_CHANNEL_0, kNotAClockMs);
+  if (!chipOpened) {
+    Serial.println("FDC1004 begin failed. Getter not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
+  cts::Sample sample =
+      cts::protocentralFdc1004Picofarads(chip, FDC1004_CHANNEL_0, 0);
+  if (!codecReady) {
+    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
   cts::Error encoded = device.reading("capacitance", sample, message, sizeof message);
   Serial.print("fdc1004 valid=");
   Serial.print(sample.valid ? "true" : "false");
   Serial.print(" encode=");
-  Serial.println(cts::errorName(encoded));
+  Serial.print(cts::errorName(encoded));
+  Serial.println(". Local JSON only. Not sent. Timestamp is not a clock.");
   delay(3000);
 }

@@ -6,7 +6,8 @@
 static cts::Device device;
 static char message[cts::TxBytes];
 static Adafruit_INA219 chip;
-static const uint64_t kNotAClockMs = 1;
+static bool chipOpened = false;
+static bool codecReady = false;
 
 static cts::ChannelSpec channel(const char *name, const char *quantity,
                                 const char *unit) {
@@ -23,25 +24,36 @@ static cts::ChannelSpec channel(const char *name, const char *quantity,
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  const bool opened = chip.begin();
+  chipOpened = chip.begin();
   cts::SessionConfig session;
   session.swarmId = "sensor";
   session.nodeId = "node";
   session.bootId = "ina219-adafruit";
-  session.wifi = true;
-  const bool defined =
+  session.wifi = false;
+  codecReady =
       device.define(channel("shunt", "voltage", "mV")) == cts::Error::Ok &&
       device.define(channel("bus", "voltage", "V")) == cts::Error::Ok &&
       device.define(channel("current", "current", "mA")) == cts::Error::Ok &&
       device.begin(session) == cts::Error::Ok;
-  Serial.println(defined ? "codec ready" : "codec failed");
-  Serial.println(opened ? "Adafruit INA219 begin returned true. Not a bench result."
-                        : "Adafruit INA219 begin returned false.");
+  Serial.println(codecReady ? "codec ready" : "codec failed");
+  Serial.println(chipOpened ? "Adafruit INA219 begin returned true. Not a bench result. Not flashed."
+                            : "Adafruit INA219 begin returned false. Getter not called for this boot.");
+  Serial.println("Timestamp is not a clock.");
 }
 void loop() {
-  cts::Sample shunt = cts::ina219ShuntMv(chip, kNotAClockMs);
-  cts::Sample bus = cts::ina219BusV(chip, kNotAClockMs);
-  cts::Sample current = cts::ina219CurrentMa(chip, kNotAClockMs);
+  if (!chipOpened) {
+    Serial.println("INA219 begin failed. Getter not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
+  cts::Sample shunt = cts::ina219ShuntMv(chip, 0);
+  cts::Sample bus = cts::ina219BusV(chip, 0);
+  cts::Sample current = cts::ina219CurrentMa(chip, 0);
+  if (!codecReady) {
+    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
   cts::Error shuntEncoded =
       device.reading("shunt", shunt, message, sizeof message);
   cts::Error busEncoded = device.reading("bus", bus, message, sizeof message);
@@ -59,6 +71,6 @@ void loop() {
   Serial.print(current.valid ? "true" : "false");
   Serial.print(" encode=");
   Serial.print(cts::errorName(currentEncoded));
-  Serial.println(". Local JSON only. Not sent. Not a bench result.");
+  Serial.println(". Local JSON only. Not sent. Not a bench result. Timestamp is not a clock.");
   delay(3000);
 }

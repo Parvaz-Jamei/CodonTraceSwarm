@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(CodonTraceSwarm VERSION 0.12.0 LANGUAGES CXX)
+project(CodonTraceSwarm VERSION 0.12.8 LANGUAGES CXX)
 add_library(codontrace_swarm src/CodonTraceSwarm.cpp src/cts/Json.cpp src/cts/Command.cpp src/cts/Dispatcher.cpp src/cts/CommandSession.cpp src/cts/Clock.cpp src/cts/TimedTelemetry.cpp src/cts/NetworkInbox.cpp src/cts/NonblockingAttempt.cpp src/cts/ReconnectOrchestrator.cpp src/cts/SampleScheduler.cpp src/cts/MockDrivers.cpp src/cts/Fdc2214Guard.cpp)
 target_include_directories(codontrace_swarm PUBLIC src)
 target_compile_features(codontrace_swarm PUBLIC cxx_std_11)

@@ -12,6 +12,10 @@ bool ReconnectOrchestrator::start(uint64_t now) noexcept {
   return policy_.start(now);
 }
 void ReconnectOrchestrator::clearOnline() noexcept {
+  // Staged Hello/Reading bytes are already owned. Dropping them is one loss.
+  // abortPublish clears retrySame_ first when it has counted the in-flight copy.
+  if (retrySame_)
+    bump(health_.losses);
   online_ = false;
   helloComplete_ = false;
   helloSerialized_ = false;
@@ -21,6 +25,7 @@ void ReconnectOrchestrator::clearOnline() noexcept {
   publishActive_ = false;
   retrySame_ = false;
   size_ = 0;
+  accepted_ = 0;
 }
 void ReconnectOrchestrator::abortPublish(bool loss) noexcept {
   if (!publishActive_)
@@ -28,6 +33,7 @@ void ReconnectOrchestrator::abortPublish(bool loss) noexcept {
   publisher_.cancel(generation_);
   publishActive_ = false;
   kind_ = OutKind::None;
+  retryKind_ = OutKind::None;
   retrySame_ = false;
   if (loss)
     bump(health_.losses);
@@ -52,8 +58,8 @@ bool ReconnectOrchestrator::stepPublish() noexcept {
   bool writeComplete = false, qos1 = false;
   const bool ok = publisher_.step(generation_, wire_, size_, accepted,
                                   writeComplete, qos1);
-  if (!ok || accepted > size_ || (writeComplete && accepted != size_) ||
-      (qos1 && !writeComplete)) {
+  if (!ok || accepted > size_ || accepted < accepted_ ||
+      (writeComplete && accepted != size_) || (qos1 && !writeComplete)) {
     if (kind_ == OutKind::Hello || kind_ == OutKind::Reading) {
       retryKind_ = kind_;
       retrySame_ = true;
@@ -69,13 +75,14 @@ bool ReconnectOrchestrator::stepPublish() noexcept {
     finishPublish();
   return true;
 }
-bool ReconnectOrchestrator::startKind(OutKind kind) noexcept {
+bool ReconnectOrchestrator::startKind(OutKind kind, uint64_t now) noexcept {
   kind_ = kind;
   publishActive_ = true;
   accepted_ = 0;
+  progressMs_ = now;
   return stepPublish();
 }
-void ReconnectOrchestrator::startReply() noexcept {
+void ReconnectOrchestrator::startReply(uint64_t now) noexcept {
   const size_t n = session_.replySize();
   if (!n || n >= sizeof(wire_))
     return;
@@ -83,23 +90,34 @@ void ReconnectOrchestrator::startReply() noexcept {
   wire_[n] = 0;
   size_ = n;
   replySeq_ = session_.replySequence();
-  startKind(OutKind::Reply);
+  startKind(OutKind::Reply, now);
 }
-void ReconnectOrchestrator::service() noexcept {
+void ReconnectOrchestrator::service(uint64_t now) noexcept {
   if (!online_)
     return;
   if (publishActive_) {
+    const size_t before = accepted_;
     stepPublish();
+    if (!publishActive_)
+      return;
+    if (accepted_ > before) {
+      progressMs_ = now;
+      return;
+    }
+    // No forward progress. A lower accepted count already failed the attempt.
+    if (now >= progressMs_ &&
+        now - progressMs_ >= static_cast<uint64_t>(attemptTimeoutMs_))
+      abortPublish(true);
     return;
   }
   if (retrySame_) {
-    startKind(retryKind_);
+    startKind(retryKind_, now);
     return;
   }
   if (!helloComplete_) {
     if (!helloSerialized_) {
       if (session_.replySize() && !replyFault_) {
-        startReply();
+        startReply(now);
         return;
       }
       if (device_.hello(wire_, sizeof(wire_)) != Error::Ok)
@@ -107,11 +125,11 @@ void ReconnectOrchestrator::service() noexcept {
       helloSerialized_ = true;
       size_ = std::strlen(wire_);
     }
-    startKind(OutKind::Hello);
+    startKind(OutKind::Hello, now);
     return;
   }
   if (session_.replySize() && !replyFault_)
-    startReply();
+    startReply(now);
 }
 void ReconnectOrchestrator::handleClose() noexcept {
   abortPublish(true);
@@ -160,7 +178,8 @@ OrchCode ReconnectOrchestrator::poll(uint64_t now, bool clockReady,
   const LinkStep step = policy_.poll(now, clockReady, jitter);
   if (step.action == LinkAction::Close)
     handleClose();
-  else if (step.action == LinkAction::Connect) {
+  else if (step.action == LinkAction::Connect &&
+           policy_.state() != LinkState::Fault) {
     if (!clockReady)
       bump(health_.connectRefusals);
     else {
@@ -169,9 +188,15 @@ OrchCode ReconnectOrchestrator::poll(uint64_t now, bool clockReady,
         policy_.lost(step.token, now, jitter);
     }
   }
-  driveAttempt(now, clockReady, jitter);
-  if (online_)
-    service();
+  if (policy_.state() != LinkState::Fault) {
+    driveAttempt(now, clockReady, jitter);
+    if (online_)
+      service(now);
+    if (!publishActive_)
+      progressMs_ = now;
+  }
+  if (policy_.state() == LinkState::Fault)
+    return OrchCode::Fault;
   return clockReady ? OrchCode::Ok : OrchCode::Refused;
 }
 OrchCode ReconnectOrchestrator::publishReading(const char *channel,
@@ -193,7 +218,7 @@ OrchCode ReconnectOrchestrator::publishReading(const char *channel,
     return OrchCode::Failed;
   std::memcpy(wire_, scratch, n + 1);
   size_ = n;
-  if (startKind(OutKind::Reading))
+  if (startKind(OutKind::Reading, progressMs_))
     return OrchCode::Ok;
   // Bytes are already on the retry queue. Failed would let the caller believe
   // they will not be published.

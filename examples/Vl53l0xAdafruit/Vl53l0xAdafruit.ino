@@ -6,12 +6,13 @@
 static cts::Device device;
 static char message[cts::TxBytes];
 static Adafruit_VL53L0X chip;
-static const uint64_t kNotAClockMs = 1;
+static bool chipOpened = false;
+static bool codecReady = false;
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  const bool opened = chip.begin();
+  chipOpened = chip.begin();
   cts::ChannelSpec channel;
   channel.name = "distance";
   channel.quantity = "distance";
@@ -23,20 +24,31 @@ void setup() {
   session.swarmId = "sensor";
   session.nodeId = "node";
   session.bootId = "vl53l0x-adafruit";
-  session.wifi = true;
-  const bool defined = device.define(channel) == cts::Error::Ok &&
-                       device.begin(session) == cts::Error::Ok;
-  Serial.println(defined ? "codec ready" : "codec failed");
-  Serial.println(opened ? "Adafruit VL53L0X begin returned true. Not a bench result."
-                        : "Adafruit VL53L0X begin returned false.");
+  session.wifi = false;
+  codecReady = device.define(channel) == cts::Error::Ok &&
+               device.begin(session) == cts::Error::Ok;
+  Serial.println(codecReady ? "codec ready" : "codec failed");
+  Serial.println(chipOpened ? "Adafruit VL53L0X begin returned true. Not a bench result. Not flashed."
+                            : "Adafruit VL53L0X begin returned false. Getter not called for this boot.");
+  Serial.println("Timestamp is not a clock.");
 }
 void loop() {
-  cts::Sample sample = cts::vl53l0xMillimeters(chip, kNotAClockMs);
+  if (!chipOpened) {
+    Serial.println("VL53L0X begin failed. Getter not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
+  cts::Sample sample = cts::vl53l0xMillimeters(chip, 0);
+  if (!codecReady) {
+    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    delay(3000);
+    return;
+  }
   cts::Error encoded = device.reading("distance", sample, message, sizeof message);
   Serial.print("vl53l0x valid=");
   Serial.print(sample.valid ? "true" : "false");
   Serial.print(" encode=");
   Serial.print(cts::errorName(encoded));
-  Serial.println(". Local JSON only. Not sent. Not a bench result.");
+  Serial.println(". Local JSON only. Not sent. Not a bench result. Timestamp is not a clock.");
   delay(3000);
 }

@@ -2,6 +2,7 @@
 // Synthetic scheduler attacks. Not a hardware sample clock.
 #include "cts/SampleScheduler.h"
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -80,6 +81,18 @@ int main() {
   CHECK(first.channel && second.channel && std::strcmp(first.channel, second.channel));
   CHECK(!pair.poll(1000000).due);
   CHECK(pair.totalDrops() == 0);
+  {
+    // UINT64_MAX is not representable as double and becomes 2^64, so
+    // 1000000/hz is exactly 2^64. period() must return false before the cast.
+    const double hz = 1000000.0 / static_cast<double>(UINT64_MAX);
+    Device slow;
+    CHECK(slow.define(spec("slow", true, hz, hz)) == Error::Ok);
+    SampleScheduler wide(slow);
+    uint64_t ignored = 1;
+    CHECK(wide.add("slow", hz, 0) == SchedulerCode::Rejected);
+    CHECK(!wide.deadline("slow", ignored));
+    std::cout << "probe period_2_64=false\n";
+  }
   if (failures)
     std::cerr << "checks=" << checks << " failures=" << failures << "\n";
   else

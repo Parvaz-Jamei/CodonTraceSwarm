@@ -18,6 +18,7 @@ jobs:
           library-manager: submit
           project-path: .
   compile:
+    # OS matrix only. The only FQBN is arduino:mbed_nano:nano33ble, not three board families.
     name: compile (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -36,9 +37,26 @@ jobs:
           arduino-cli version
           arduino-cli core update-index
           arduino-cli core install arduino:mbed_nano
+          arduino-cli lib update-index
+          arduino-cli lib install \
+            "Adafruit BME280 Library" \
+            "Adafruit SHT4x Library" \
+            "Adafruit INA219" \
+            "Adafruit_VL53L0X" \
+            "HX711 Arduino Library" \
+            "ProtoCentral FDC1004 Capacitive Sensor Library" \
+            "FDCxCapSense"
           rm -rf "$RUNNER_TEMP/sketches"
           cp -a examples "$RUNNER_TEMP/sketches"
-          for ex in CheckInclude CoreSmoke PortableClock; do
-            arduino-cli compile --fqbn arduino:mbed_nano:nano33ble \
-              --library "$GITHUB_WORKSPACE" "$RUNNER_TEMP/sketches/$ex"
+          compiled=0
+          for sketch in "$RUNNER_TEMP/sketches"/*; do
+            if [[ -d "$sketch" ]]; then
+              compiled=$((compiled + 1))
+              arduino-cli compile --fqbn arduino:mbed_nano:nano33ble \
+                --library "$GITHUB_WORKSPACE" "$sketch"
+            fi
           done
+          if [[ "$compiled" -lt 1 ]]; then
+            echo "no example sketches found" >&2
+            exit 1
+          fi

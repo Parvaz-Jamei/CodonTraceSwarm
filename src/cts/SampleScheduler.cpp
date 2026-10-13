@@ -4,13 +4,25 @@
 #include <cstring>
 #include <limits>
 namespace cts {
+namespace {
+// 2^64 is the first positive value that does not fit in uint64_t. It is
+// exactly representable as a double. static_cast<double>(UINT64_MAX) is also
+// 2^64, so a greater-than comparison against that cast accepts a period of
+// exactly 2^64 and the following conversion overflows.
+bool strictlyBelowTwo64(double value) noexcept {
+  return std::isfinite(value) && value < 18446744073709551616.0;
+}
+} // namespace
 bool SampleScheduler::period(double hz, uint64_t &out) noexcept {
   if (!std::isfinite(hz) || hz <= 0)
     return false;
   const double us = 1000000.0 / hz;
-  if (!(us >= 1.0) || us > static_cast<double>(std::numeric_limits<uint64_t>::max()))
+  if (!(us >= 1.0) || !strictlyBelowTwo64(us))
     return false;
-  out = static_cast<uint64_t>(us + 0.5);
+  const double rounded = us + 0.5;
+  if (!strictlyBelowTwo64(rounded))
+    return false;
+  out = static_cast<uint64_t>(rounded);
   return out != 0;
 }
 uint64_t SampleScheduler::sat(uint64_t a, uint64_t b) noexcept {

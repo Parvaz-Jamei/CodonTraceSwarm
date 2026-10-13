@@ -21,13 +21,16 @@ void setup() {
   session.swarmId = "smoke";
   session.nodeId = "node";
   session.bootId = "compile-only";
-  // wifi=true is only the genesis_swarm_v2 eligibility flag.
-  session.wifi = true;
+  // This sketch does not open a socket, so it is not a Wi-Fi node.
+  session.wifi = false;
 
   Serial.begin(115200);
   defined = device.define(channel);
   started = device.begin(session);
-  encoded = device.hello(message, sizeof(message));
+  if (defined == cts::Error::Ok && started == cts::Error::Ok)
+    encoded = device.hello(message, sizeof(message));
+  else
+    encoded = cts::Error::NotStarted;
 }
 void loop() {
   uint32_t now = static_cast<uint32_t>(millis());
@@ -39,7 +42,7 @@ void loop() {
   Serial.print(cts::errorName(started));
   Serial.print(" hello=");
   Serial.print(cts::errorName(encoded));
-  Serial.println(". Local buffer only. Not sent. No socket, no MQTT, no sensor.");
+  Serial.println(". Local buffer only. Not sent. No socket, no MQTT, no sensor. Timestamp is not a clock.");
   if (defined == cts::Error::Ok && started == cts::Error::Ok &&
       encoded == cts::Error::Ok)
     Serial.println(message);
