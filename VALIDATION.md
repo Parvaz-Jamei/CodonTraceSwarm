@@ -37,4 +37,4 @@ Attack coverage in the new binaries: scheduler burst does not catch up; SHT4x pr
 | Compiled on board | NOT_RUN |
 | Engine-integrated drivers | NOT_RUN |
 
-`architectures=*` is not tested board support. `ArduinoMqttAdapter` was not turned into the nonblocking seam and may still block. Mock sensor numbers are SYNTHETIC. No PASS is claimed for bench, flash, soak, or RQ.
+`architectures` is not tested board support. Boards under 128 KB SRAM are excluded. `ArduinoMqttAdapter` was not turned into the nonblocking seam and may still block. Mock sensor numbers are SYNTHETIC. No PASS is claimed for bench, flash, soak, or RQ.

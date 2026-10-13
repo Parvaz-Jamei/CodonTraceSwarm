@@ -1,9 +1,10 @@
+- 0.12.2: Drop boards whose SRAM cannot hold the current profile. Eligible architectures need at least 128 KB. None of them were compiled.
 - 0.12.1: CoreSmoke no longer sets wifi=false, so begin/hello can succeed; still no socket.
 
 # Checkpoint 12
 
 - Version 0.12.0. Library URL is https://github.com/Parvaz-Jamei/CodonTraceSwarm.
-  `architectures=*` remains and is not tested board support.
+  That checkpoint still used `architectures=*`, which 0.12.2 replaced.
 - Added a single-threaded reconnect orchestrator: fresh hello before readings on
   each generation, reply confirmation only after full write and QoS1, and an
   explicit loss counter when a publish is in flight at disconnect.

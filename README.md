@@ -2,10 +2,9 @@
 
 **An actual, buildable C++11 foundation, delivered as a complete cumulative snapshot.**
 
-This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL**. Phase 2 remains **PARTIAL**. Phase 3 drivers in this tree are mock-only. Phase 4 and phase 5 are **BLOCKED**. `architectures=*` is not tested board support.
+This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL**. Phase 2 remains **PARTIAL**. Phase 3 drivers in this tree are mock-only. Phase 4 and phase 5 are **BLOCKED**. `architectures` lists only cores with at least 128 KB SRAM. That is not tested board support. AVR, SAMD21, UNO R4, ESP8266 and Due are excluded.
 
-Target: **all Arduino-supported board families**, with explicit memory profiles and
-platform adapters. No board certification is implied; see [Arduino portability](docs/ARDUINO_PORTABILITY.md) and [phase gates](docs/PHASE_GATES.md).
+Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO_PORTABILITY.md) and [phase gates](docs/PHASE_GATES.md).
 
 ## Implemented
 

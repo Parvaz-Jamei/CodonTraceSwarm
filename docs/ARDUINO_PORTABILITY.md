@@ -1,40 +1,58 @@
-# Arduino-wide portability target — checkpoint 08
+# Arduino portability — version 0.12.2
 
-The target is all Arduino-supported board families, not ESP32 alone. Board-neutral
-protocol and algorithm code must remain separate from manufacturer SDKs. `architectures=*`
-allows Arduino to consider this library on any architecture; it is NOT a tested
-compatibility claim. No Arduino board has been cross-compiled or hardware-tested here.
+The current profile is not for every Arduino board. `library.properties` lists only
+architectures whose boards have enough SRAM for this build. That list is still
+**not** a compile, flash, or bench result. No board has been cross-compiled here.
 
-## Layers and acceptance gates
+## Why boards were removed
 
-- Portable core: schema, ownership, bounds, grants, command lifecycle and deterministic data rules.
-- Platform adapters: monotonic counter, trustworthy UTC observations, transport callbacks,
-  TLS credentials, task synchronization and physical sensor drivers.
-- Profiles: memory capacity appropriate to each board, preserving explicit overflow/error
-  behavior and wire semantics. A tiny profile is not implemented yet.
+Native sizes, host measurement not an MCU map: `Device` 34,928 bytes,
+`CommandSession` 12,352, `NetworkInbox` 16,824. Together that is 64,104 bytes,
+almost all fixed buffers (`TxBytes` 8192, eight channel records, three 4096-byte
+inbox frames plus assembly). A sketch that also keeps a transmit buffer adds
+another 8192. On AVR, `double` is 32-bit so `Device` shrinks by about 4 KB and
+is still far above 16 KB.
 
-The current native Device size is 34,928 bytes, CommandSession 12,352 and NetworkInbox
-16,824. These are native measurements, not MCU memory maps. This full configuration
-cannot reasonably target UNO R3's 2 KB SRAM. Do not merely replace ESP32 with “all boards”
-and call compatibility complete. Small AVR boards need a redesigned bounded profile
-or a separately specified gateway role. No functionality was silently removed here.
+A board stays eligible only when its SRAM is at least 128 KB, leaving headroom
+for the core, stack, and radio. No small-memory profile exists, so these parts
+are unsupported rather than silently truncated.
 
-| Family | Target direction | Verified in this package |
+| Removed | SRAM | architectures id |
 |---|---|---|
-| AVR / megaAVR | small profile, C++ library/header and number-format checks | NOT_RUN |
-| SAM / SAMD | core plus board-specific time/network adapters and RAM budget | NOT_RUN |
-| ESP8266 / ESP32 | Arduino core plus secure transport and task handoff | NOT_RUN |
-| RP2040 / RP2350 | selected Arduino core, time and network backend | NOT_RUN |
-| STM32 / nRF52 / Renesas / other Arduino cores | same explicit compile and resource gates | NOT_RUN |
+| UNO R3, Nano, Leonardo | 2–2.5 KB | avr |
+| Mega 2560 | 8 KB | avr |
+| Nano Every, Uno WiFi Rev2 | 6 KB | megaavr |
+| UNO R4 Minima / WiFi | 32 KB | renesas_uno |
+| MKR family, Nano 33 IoT, Zero | 32 KB | samd |
+| Due | 96 KB | sam |
+| ESP8266 | about 50 KB usable with Wi-Fi | esp8266 |
+| STM32F103 Blue Pill and other small STM32 parts | 20 KB class | stm32 |
+| nRF52832, Nicla Sense ME | 64 KB | nrf52, mbed_nicla |
 
-Arduino support does not imply built-in Wi-Fi. A network-capable board/module or
-specified gateway is necessary for the intended network path; the library must not
-report Wi-Fi as present when the application has not configured it.
+SAMD51 boards have enough RAM, but they share the `samd` id with SAMD21, so the
+whole architecture is excluded. STM32 parts with 128 KB or more are excluded for
+the same reason: one id covers the 20 KB parts.
 
-## Compile the selected board
+## Still eligible, not tested
 
-Install your board core using the normal Arduino tools first. This script neither
-installs cores, uploads firmware, changes board configuration nor contacts hardware.
+| architectures id | Examples | SRAM | Verified |
+|---|---|---|---|
+| esp32 | ESP32, S2, S3, C3, C6 | 272 KB and up | NOT_RUN |
+| rp2040 | Pico, Pico 2 on the Earle core | 264 KB and up | NOT_RUN |
+| mbed_nano | Nano 33 BLE | 256 KB | NOT_RUN |
+| mbed_rp2040 | Nano RP2040 Connect | 264 KB | NOT_RUN |
+| mbed_portenta | Portenta H7 | megabytes | NOT_RUN |
+| mbed_giga | Giga R1 | megabytes | NOT_RUN |
+| mbed_opta | Opta | megabytes | NOT_RUN |
+| renesas_portenta | Portenta C33 | 512 KB | NOT_RUN |
+
+Eligibility is not Wi-Fi, TLS, or a sensor driver. `CoreSmoke` still constructs a
+full `Device` and is unsuitable for any board below this cutoff.
+
+## Compile an eligible board
+
+Install that board core first. This script does not install cores, upload, or
+touch hardware. A missing CLI is NOT_RUN. A compiler error is FAIL, never PASS.
 
 ```sh
 python3 tools/check_arduino.py --fqbn YOUR:CORE:BOARD \
@@ -43,32 +61,10 @@ python3 tools/check_arduino.py --fqbn YOUR:CORE:BOARD \
   --example PortableClock --output build-board-clock
 ```
 
-The report records FQBN, CLI version, installed cores, command, status and log.
-Missing CLI produces NOT_RUN with nonzero exit; compile errors produce FAIL, never
-PASS. Full qualification additionally requires exact toolchain pinning, memory map,
-stack/heap/TLS headroom, numeric serialization checks, hardware time/transport tests
-and sustained operation. CoreSmoke does allocate the full Device and output buffer.
-PortableClock alone does not validate the full engine integration.
+Full qualification still needs a memory map, toolchain pin, and hardware tests.
+`PortableClock` does not construct `Device` and does not prove the full profile.
 
-## Generic millis counter adapter
+## Generic millis counter
 
-`cts::Millis32` takes an unsigned 32-bit counter, e.g. an explicit cast of `millis()`.
-It accumulates elapsed milliseconds from the first observation, handles modular wrap,
-and latches a detected rollback/ambiguous half-range step. It has no board dependencies,
-no allocation and no network calls. It is single-owner, not interrupt/task-safe.
-
-Observe strictly more often than every 2^31 milliseconds (about 24.85 days); after
-deep sleep/reset or an unobserved full wrap, software cannot reconstruct elapsed time
-from this counter alone. A small forward jump caused by reset is also undetectable.
-Create a new counter and application boot session after reset. Never use elapsed time
-as UTC or set `synchronized=true` solely because this counter is ready. Feed a proper
-board TimeSource and retain MonitoredClock's age/uncertainty validation.
-
-## Primary sources checked 2026-10-13
-
-- https://docs.arduino.cc/arduino-cli/library-specification
-- https://docs.arduino.cc/arduino-cli/sketch-build-process
-- https://docs.arduino.cc/arduino-cli/platform-specification/
-- https://docs.arduino.cc/resources/datasheets/A000066-datasheet.pdf
-
-These motivate packaging and resource constraints, not an unsupported universality claim.
+`cts::Millis32` observes an unsigned 32-bit counter. It is not UTC and it does
+not make a removed board supported.
