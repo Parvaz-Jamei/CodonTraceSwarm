@@ -1,0 +1,5 @@
+checks=117 failures=0 sizeof_device=34720
+command_checks=607 failures=0 fuzz_inputs=20000 sizeof_decoder=6456
+PASS: 7 actual C++ envelopes, all five types, zero/null, Unicode, real coordinator acceptance and deterministic same-input replay. Host=74c7b3f15c2d093da03e392094814d63a4997c2c
+SYNTHETIC codec fixtures; no real hardware, MQTT or ALife trajectory is tested.
+PASS: 7 real host-generated command shapes decoded by C++; parameters and identities match. DECODE ONLY, no dispatch or firmware capability claim.

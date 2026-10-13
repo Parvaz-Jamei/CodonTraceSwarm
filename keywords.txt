@@ -1,0 +1,34 @@
+#######################################
+# Syntax Coloring Map For CodonTraceSwarm
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+CodonTraceSwarm	KEYWORD1
+Device	KEYWORD1
+CommandSession	KEYWORD1
+ChannelSpec	KEYWORD1
+Descriptor	KEYWORD1
+Sample	KEYWORD1
+SessionConfig	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+define	KEYWORD2
+allow	KEYWORD2
+hello	KEYWORD2
+reading	KEYWORD2
+heartbeat	KEYWORD2
+commandAllowed	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+MaxChannels	LITERAL1
+MaxValues	LITERAL1
+TxBytes	LITERAL1

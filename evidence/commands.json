@@ -1,0 +1,197 @@
+{
+  "synthetic_controller_fixture": true,
+  "host_commit": "74c7b3f15c2d093da03e392094814d63a4997c2c",
+  "execution_tested": false,
+  "commands": [
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-1",
+      "operation": "sample",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-2",
+      "operation": "raw",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-3",
+      "operation": "features",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-4",
+      "operation": "result",
+      "params": {
+        "channel": "s"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-5",
+      "operation": "set_rate",
+      "params": {
+        "channel": "s",
+        "hz": 2.5
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-6",
+      "operation": "pipeline",
+      "params": {
+        "channel": "s",
+        "pipeline": {
+          "alpha": 0.25,
+          "clip": 5,
+          "event_threshold": 2
+        },
+        "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    },
+    {
+      "schema": "genesis_swarm_command_v1",
+      "swarm_id": "synthetic",
+      "node_id": "native",
+      "boot_id": "boot_a",
+      "command_id": "cmd-7",
+      "operation": "capsule",
+      "params": {
+        "channel": "s",
+        "pipeline": {
+          "alpha": 0.25,
+          "clip": 5,
+          "event_threshold": 2
+        },
+        "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "created_ms": 1800000000000,
+      "expires_ms": 1800000005000,
+      "status": "pending"
+    }
+  ],
+  "decoded": [
+    {
+      "error": "ok",
+      "id": "cmd-1",
+      "operation": "sample",
+      "channel": "s",
+      "hz": 0,
+      "alpha": 0,
+      "clip": 0,
+      "event_threshold": 0,
+      "source_digest": ""
+    },
+    {
+      "error": "ok",
+      "id": "cmd-2",
+      "operation": "raw",
+      "channel": "s",
+      "hz": 0,
+      "alpha": 0,
+      "clip": 0,
+      "event_threshold": 0,
+      "source_digest": ""
+    },
+    {
+      "error": "ok",
+      "id": "cmd-3",
+      "operation": "features",
+      "channel": "s",
+      "hz": 0,
+      "alpha": 0,
+      "clip": 0,
+      "event_threshold": 0,
+      "source_digest": ""
+    },
+    {
+      "error": "ok",
+      "id": "cmd-4",
+      "operation": "result",
+      "channel": "s",
+      "hz": 0,
+      "alpha": 0,
+      "clip": 0,
+      "event_threshold": 0,
+      "source_digest": ""
+    },
+    {
+      "error": "ok",
+      "id": "cmd-5",
+      "operation": "set_rate",
+      "channel": "s",
+      "hz": 2.5,
+      "alpha": 0,
+      "clip": 0,
+      "event_threshold": 0,
+      "source_digest": ""
+    },
+    {
+      "error": "ok",
+      "id": "cmd-6",
+      "operation": "pipeline",
+      "channel": "s",
+      "hz": 0,
+      "alpha": 0.25,
+      "clip": 5,
+      "event_threshold": 2,
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "error": "ok",
+      "id": "cmd-7",
+      "operation": "capsule",
+      "channel": "s",
+      "hz": 0,
+      "alpha": 0.25,
+      "clip": 5,
+      "event_threshold": 2,
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}

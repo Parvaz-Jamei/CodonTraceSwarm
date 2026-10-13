@@ -1,0 +1,8 @@
+build*/
+.pio/
+secrets.h
+__pycache__/
+*.o
+*.elf
+*.bin
+reference-host/

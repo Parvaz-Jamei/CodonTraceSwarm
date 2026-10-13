@@ -1,0 +1,17 @@
+name: Rebuild checkpoint verification
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Fetch immutable host contract
+        run: |
+          git init reference-host
+          git -C reference-host remote add origin https://github.com/Parvaz-Jamei/codontrace-genesis.git
+          git -C reference-host fetch --depth 1 origin 74c7b3f15c2d093da03e392094814d63a4997c2c
+          git -C reference-host checkout --detach FETCH_HEAD
+      - name: Sanitized core and real-host checks
+        run: python3 tools/check.py --sanitize --host reference-host

@@ -1,0 +1,3 @@
+checks=117 failures=0 sizeof_device=34720
+PASS: 7 actual C++ envelopes, all five types, zero/null, Unicode, real coordinator acceptance and deterministic same-input replay. Host=74c7b3f15c2d093da03e392094814d63a4997c2c
+SYNTHETIC codec fixtures; no real hardware, MQTT or ALife trajectory is tested.
