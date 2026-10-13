@@ -42,7 +42,7 @@ void setup() {
   Serial.print(opened1004 == FDCxStatus::Ok ? "ok" : "not_ok");
   Serial.print(" FDC2214 begin=");
   Serial.println(opened2214 == FDCxStatus::Ok ? "ok" : "not_ok");
-  Serial.println("Not a bench result. FDC2214 clock is the caller constant, not a measured oscillator.");
+  Serial.println("Not a bench result. FDC2214 clock is the caller constant. That clock was not measured.");
 }
 void loop() {
   cts::Sample cap = cts::fdcxFdc1004Picofarads(fdc1004, FDC1004Measurement::M1, kNotAClockMs);

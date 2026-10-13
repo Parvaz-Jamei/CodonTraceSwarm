@@ -24,8 +24,9 @@ void setup() {
   session.nodeId = "node";
   session.bootId = "vl53l0x-adafruit";
   session.wifi = true;
-  device.define(channel);
-  device.begin(session);
+  const bool defined = device.define(channel) == cts::Error::Ok &&
+                       device.begin(session) == cts::Error::Ok;
+  Serial.println(defined ? "codec ready" : "codec failed");
   Serial.println(opened ? "Adafruit VL53L0X begin returned true. Not a bench result."
                         : "Adafruit VL53L0X begin returned false.");
 }
@@ -35,6 +36,7 @@ void loop() {
   Serial.print("vl53l0x valid=");
   Serial.print(sample.valid ? "true" : "false");
   Serial.print(" encode=");
-  Serial.println(cts::errorName(encoded));
+  Serial.print(cts::errorName(encoded));
+  Serial.println(". Local JSON only. Not sent. Not a bench result.");
   delay(3000);
 }

@@ -24,7 +24,7 @@ void setup() {
   session.wifi = true;
   device.define(channel);
   device.begin(session);
-  Serial.println("HX711 Arduino Library begin called. Scale is the library default. Not a calibration.");
+  Serial.println("HX711 Arduino Library begin called. The unit is the library scale, not kilograms. Not a calibration. Not a bench result.");
 }
 void loop() {
   cts::Sample sample = cts::hx711Units(chip, kNotAClockMs);

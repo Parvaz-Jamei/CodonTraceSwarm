@@ -13,6 +13,10 @@ inline Sample fdcxFdc1004Picofarads(FDC1004 &chip, FDC1004Measurement measuremen
 }
 inline Sample fdcxFdc2214Hertz(FDC2x1x &chip, FDC2x1xChannel channel, float fclkHz,
                                uint64_t utcMs) {
+  // Caller supplies fclk. Do not invent a clock and do not touch the chip
+  // until that argument is a positive finite frequency.
+  if (!std::isfinite(fclkHz) || fclkHz <= 0.0f)
+    return Sample::invalid("invalid_argument", utcMs);
   FDC2x1xFrequency reading;
   if (chip.readFrequencyHzFromRegisters(channel, fclkHz, reading) != FDCxStatus::Ok)
     return Sample::invalid("read_failed", utcMs);

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
+// Adafruit SHT4x has temperature and humidity only. Pressure is unsupported.
 #include "../SensorSample.h"
 #include <Adafruit_SHT4x.h>
 namespace cts {
