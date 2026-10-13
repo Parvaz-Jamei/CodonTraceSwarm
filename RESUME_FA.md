@@ -1,6 +1,6 @@
 # ادامه از بستهٔ ۱۲
 
-بسته تجمعی است. نسخهٔ کتابخانه 0.12.0 است و نشانی آن https://github.com/Parvaz-Jamei/CodonTraceSwarm است. `architectures=*` فقط اجازهٔ فهرست Arduino است و به معنی آزمون‌شده بودن بردها نیست.
+بسته تجمعی است. نسخهٔ کتابخانه 0.12.1 است و نشانی آن https://github.com/Parvaz-Jamei/CodonTraceSwarm است. `architectures=*` فقط اجازهٔ فهرست Arduino است و به معنی آزمون‌شده بودن بردها نیست.
 
 جدید در src/cts: هماهنگ‌کنندهٔ reconnect، درز تلاش غیرمسدودکننده، SampleScheduler، شش درایور mock با bus تزریقی، و نگهبان FDC2214. آداپتر ArduinoMqttAdapter همچنان همگام است و ممکن است block کند؛ آن درز را پیاده نمی‌کند.
 

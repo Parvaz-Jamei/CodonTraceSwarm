@@ -12,7 +12,10 @@ void setup() {
   channel.descriptor.sourceUnit="degC";
   cts::SessionConfig session;
   session.swarmId="smoke"; session.nodeId="node"; session.bootId="compile-only";
-  session.wifi=false; // No transport is created by this example.
+  // wifi=true is only the genesis_swarm_v2 eligibility flag. This sketch
+  // opens no socket, no MQTT, and no sensor. It is a compile-oriented
+  // smoke, not a link test and not a measurement.
+  session.wifi=true;
   coreReady = device.define(channel)==cts::Error::Ok &&
       device.begin(session)==cts::Error::Ok &&
       device.hello(message,sizeof(message))==cts::Error::Ok;

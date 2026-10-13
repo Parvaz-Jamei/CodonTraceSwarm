@@ -1,3 +1,5 @@
+- 0.12.1: CoreSmoke no longer sets wifi=false, so begin/hello can succeed; still no socket.
+
 # Checkpoint 12
 
 - Version 0.12.0. Library URL is https://github.com/Parvaz-Jamei/CodonTraceSwarm.
