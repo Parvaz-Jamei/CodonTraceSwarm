@@ -50,9 +50,13 @@ struct OrchHealth {
 // does not move it. Before restarting the retry, if
 // now - messageStartedMs_ >= 2 * attemptTimeoutMs, startKind is not called,
 // the retry is cleared, and exactly one loss is counted. A later poll does
-// not count a second loss for that dropped message. readingsAllowed() is then
-// true when hello is already complete. The same serialized hello is not started
-// again on this connection after that drop; a new connection can hello.
+// not count a second loss for that dropped message. A dropped Reading leaves
+// the link up; readingsAllowed() is then true when hello is already complete.
+// A dropped Hello closes this connection via onDisconnected(generation, now, 0)
+// after that loss and after retrySame_ is cleared, so the close does not count
+// a second loss. readingsAllowed() stays false until a later connection
+// completes a new hello. Policy backoff runs first; the same poll does not
+// reconnect. The same serialized hello is not started again on this connection.
 // A pending command reply is not a reading and is not dropped by this budget.
 // accepted from the publisher is cumulative. A publish that makes no forward
 // progress for attemptTimeoutMs is cancelled once, counts one loss, and is

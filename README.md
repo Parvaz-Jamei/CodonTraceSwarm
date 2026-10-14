@@ -4,7 +4,7 @@
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm"><img alt="Arduino Library Spec" src="https://img.shields.io/badge/Arduino%20Library-v1.5-00979C.svg?logo=arduino&logoColor=white"></a>
   <a href="https://en.cppreference.com/w/cpp/11"><img alt="C++ Standard" src="https://img.shields.io/badge/C%2B%2B-11%20Standard-00599C.svg?logo=c%2B%2B&logoColor=white"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
-  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.10-blue.svg"></a>
+  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.11-blue.svg"></a>
   <img alt="128 KB SRAM is listed, not a measured TLS budget" src="https://img.shields.io/badge/SRAM-128%20KB%20listed%2C%20not%20measured%20TLS-orange.svg">
   <img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg">
 </p>
@@ -147,10 +147,10 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps =
-    https://github.com/Parvaz-Jamei/CodonTraceSwarm.git#0.12.10
+    https://github.com/Parvaz-Jamei/CodonTraceSwarm.git#0.12.11
 ```
 
-The git tag is `0.12.10`, not `v0.12.10`. The `esp32dev` environment above only shows how to name the dependency. ESP32 is listed in `library.properties` and was not compile-tested in CI.
+The git tag is `0.12.11`, not `v0.12.11`. The `esp32dev` environment above only shows how to name the dependency. ESP32 is listed in `library.properties` and was not compile-tested in CI.
 
 ---
 
@@ -158,7 +158,7 @@ The git tag is `0.12.10`, not `v0.12.10`. The `esp32dev` environment above only 
 
 ### 1. Minimal Telemetry Producer
 
-`kSyntheticUtcMs` is not millis() and not a measured clock. `session.wifi` is true only because `Device::begin` rejects a false flag. This snippet does not open a socket. `descriptor.type` below is the C++ field, not a wire name.
+CoreSmoke is the sketch that prints a hello and a reading and does not open a socket.
 
 ```cpp
 #include <Arduino.h>
@@ -167,7 +167,6 @@ The git tag is `0.12.10`, not `v0.12.10`. The `esp32dev` environment above only 
 // Allocate in global/static storage to avoid stack overflow (34 KiB footprint)
 static cts::Device device;
 static char wireBuffer[cts::TxBytes];
-// not millis() and not a measured clock.
 static const uint64_t kSyntheticUtcMs = 1791331500000ULL;
 
 void setup() {
@@ -216,7 +215,6 @@ void loop() {
   if (device.reading("ambient_temp", sample, wireBuffer, sizeof(wireBuffer)) == cts::Error::Ok) {
     Serial.println("=== READING PACKET ===");
     Serial.println(wireBuffer);
-    Serial.println("Local buffer only. The line was not sent.");
   }
 
   delay(5000);
@@ -227,7 +225,7 @@ void loop() {
 
 ### 2. Multi-axis Vectors & Waveforms
 
-`kVectorUtcMs` is not millis() and not a measured clock. This snippet does not open a socket. `define` and `begin` are checked. `descriptor.featureId`, `configId`, and `sourceUnit` are required by `define`.
+This snippet encodes one vector reading and does not open a socket.
 
 ```cpp
 #include <Arduino.h>
@@ -235,7 +233,6 @@ void loop() {
 
 static cts::Device device;
 static char txBuffer[cts::TxBytes];
-// not millis() and not a measured clock.
 static const uint64_t kVectorUtcMs = 1791331601000ULL;
 
 void setup() {
@@ -271,7 +268,6 @@ void setup() {
   }
   if (device.hello(txBuffer, sizeof(txBuffer)) == cts::Error::Ok) {
     Serial.println(txBuffer);
-    Serial.println("Local hello only. The line was not sent.");
   }
 }
 
@@ -287,7 +283,6 @@ void loop() {
 
   if (device.reading("acceleration", sample, txBuffer, sizeof(txBuffer)) == cts::Error::Ok) {
     Serial.println(txBuffer);
-    Serial.println("Local reading only. The line was not sent.");
   }
   delay(1000);
 }
@@ -297,7 +292,7 @@ void loop() {
 
 ### 3. Safe Host Command Dispatcher
 
-SYNTHETIC. This is a complete sketch against `Dispatcher`'s real constructor. There is no default constructor, no `bind`, and no `setHandler`. `DeliveryContext.authenticated` is an adapter assertion. This library does not authenticate commands. The clock value is not millis() and not a measured clock. This snippet does not open a socket.
+This snippet runs one Dispatcher command and does not authenticate commands or open a socket.
 
 ```cpp
 #include <Arduino.h>
@@ -305,7 +300,6 @@ SYNTHETIC. This is a complete sketch against `Dispatcher`'s real constructor. Th
 #include <cts/Dispatcher.h>
 #include <cstring>
 
-// not millis() and not a measured clock.
 static const uint64_t kSyntheticUtcMs = 1791331500000ULL;
 
 class SyntheticClock : public cts::ClockProvider {
@@ -330,7 +324,7 @@ class SyntheticPolicy : public cts::CommandPolicy {
 class SyntheticExecutor : public cts::CommandExecutor {
  public:
   bool execute(const cts::Command &command) noexcept override {
-    Serial.print("SYNTHETIC execute id=");
+    Serial.print("execute id=");
     Serial.println(command.id);
     return true;
   }
@@ -381,11 +375,10 @@ void setup() {
   const cts::DispatchResult submitted =
       dispatcher.submit(command, sizeof(command) - 1, delivery);
   const cts::DispatchResult ran = dispatcher.runOne(executor);
-  Serial.print("SYNTHETIC submit=");
+  Serial.print("submit=");
   Serial.println(submitted.code == cts::DispatchCode::Queued ? "Queued" : "not-queued");
-  Serial.print("SYNTHETIC run=");
+  Serial.print("run=");
   Serial.println(ran.state == cts::CommandState::Succeeded ? "Succeeded" : "not-succeeded");
-  Serial.println("SYNTHETIC dispatcher sketch. The line was not sent. This library does not authenticate commands.");
 }
 
 void loop() {}
@@ -395,7 +388,7 @@ void loop() {}
 
 ### 4. Hardened Sensor Integration (BME280)
 
-The third argument of `bme280ReadChecked` is caller-supplied and is not a clock. This sketch was not flashed. This snippet does not open a socket. Do not pass `millis()`.
+The sensor sketches print a local reading and do not open a codec session.
 
 ```cpp
 #include <Wire.h>
@@ -406,39 +399,41 @@ The third argument of `bme280ReadChecked` is caller-supplied and is not a clock.
 static Adafruit_BME280 bme;
 static const uint8_t kBmeAddress = 0x76;
 static bool chipOpened = false;
-// not millis() and not a measured clock.
-static const uint64_t kCallerSuppliedMs = 1791331500000ULL;
+
+static void printField(bool &first, const char *name, const cts::Sample &sample,
+                       const char *unit) {
+  if (!first)
+    Serial.print(" | ");
+  first = false;
+  Serial.print(name);
+  Serial.print('=');
+  if (sample.valid) {
+    Serial.print(sample.value);
+    Serial.print(' ');
+    Serial.print(unit);
+  } else {
+    Serial.print(sample.status);
+  }
+}
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();
   chipOpened = bme.begin(kBmeAddress);
-  if (!chipOpened) {
-    Serial.println("BME280 begin returned false. Checked read not called. This sketch was not flashed.");
-    return;
-  }
-  Serial.println("BME280 begin returned true. Not a bench result. This sketch was not flashed.");
 }
 
 void loop() {
   if (!chipOpened) {
-    Serial.println("Checked read not called. The line was not sent. This sketch was not flashed.");
+    Serial.println("BME280 begin_failed");
     delay(2000);
     return;
   }
-  // The third argument is caller-supplied and is not a clock.
-  cts::Bme280Checked reading =
-      cts::bme280ReadChecked(Wire, kBmeAddress, kCallerSuppliedMs);
-
-  Serial.print("temperature=");
-  Serial.print(reading.temperature.value);
-  Serial.print(" degC valid=");
-  Serial.print(reading.temperature.valid ? "true" : "false");
-  Serial.print(" pressure=");
-  Serial.print(reading.pressure.value);
-  Serial.print(" Pa humidity=");
-  Serial.print(reading.humidity.value);
-  Serial.println(" percent. The line was not sent. This sketch was not flashed.");
+  cts::Bme280Checked reading = cts::bme280ReadChecked(Wire, kBmeAddress, 0);
+  bool first = true;
+  printField(first, "temperature", reading.temperature, "degC");
+  printField(first, "pressure", reading.pressure, "Pa");
+  printField(first, "humidity", reading.humidity, "%");
+  Serial.println();
   delay(2000);
 }
 ```

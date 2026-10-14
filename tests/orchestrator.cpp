@@ -642,6 +642,37 @@ int main() {
   }
   {
     Env env;
+    env.link.done = true;
+    env.pub.mode = Pub::Mode::Fail;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.poll(20001, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.losses() == 1);
+    CHECK(!env.orch.helloComplete());
+    CHECK(!env.orch.readingsAllowed());
+    CHECK(env.policy.state() != LinkState::Online);
+    CHECK(env.policy.state() == LinkState::Waiting);
+    const int steps = env.pub.steps;
+    const int starts = env.link.starts;
+    CHECK(env.policy.nextAttemptMs() > 20002);
+    CHECK(env.orch.poll(20002, true, 0) == OrchCode::Ok);
+    CHECK(env.pub.steps == steps);
+    CHECK(env.link.starts == starts);
+    CHECK(env.orch.losses() == 1);
+    const uint64_t due = env.policy.nextAttemptMs();
+    env.pub.mode = Pub::Mode::Complete;
+    for (uint64_t t = due; t <= due + 5; ++t)
+      CHECK(env.orch.poll(t, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.helloComplete());
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Ok);
+    CHECK(env.orch.health().readings == 1);
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.poll(due + 6, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.helloComplete());
+  }
+  {
+    Env env;
     CHECK(env.orch.poll(100, true, 0) == OrchCode::Ok);
     CHECK(env.policy.state() != LinkState::Fault);
     const int starts = env.link.starts;

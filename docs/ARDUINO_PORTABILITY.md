@@ -1,4 +1,4 @@
-# Arduino portability — version 0.12.10
+# Arduino portability — version 0.12.11
 
 The current profile is not for every Arduino board. `library.properties` lists only
 architectures whose boards have enough SRAM for this build. That list is still

@@ -128,9 +128,13 @@ void ReconnectOrchestrator::service(uint64_t now) noexcept {
       const OutKind dropped = retryKind_;
       retrySame_ = false;
       retryKind_ = OutKind::None;
-      if (dropped == OutKind::Hello)
-        helloAbandoned_ = true;
       bump(health_.losses);
+      // Hello only. retrySame_ is already false and publish is inactive, so
+      // onDisconnected's clearOnline must not count a second loss. A Reading
+      // drop does not close. Jitter 0 lets policy_.lost schedule backoff;
+      // this poll already passed Connect, so it does not reconnect.
+      if (dropped == OutKind::Hello && !retrySame_ && !publishActive_)
+        onDisconnected(generation_, now, 0);
       return;
     }
     startKind(retryKind_, now);
