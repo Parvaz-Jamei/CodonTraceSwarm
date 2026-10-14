@@ -15,7 +15,7 @@ jobs:
       - uses: arduino/arduino-lint-action@v2
         with:
           compliance: strict
-          library-manager: submit
+          library-manager: update
           project-path: .
   compile:
     # OS matrix only. The only FQBN is arduino:mbed_nano:nano33ble, not three board families.
