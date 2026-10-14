@@ -80,6 +80,7 @@ bool ReconnectOrchestrator::startKind(OutKind kind, uint64_t now) noexcept {
   publishActive_ = true;
   accepted_ = 0;
   progressMs_ = now;
+  publishStartedMs_ = now;
   return stepPublish();
 }
 void ReconnectOrchestrator::startReply(uint64_t now) noexcept {
@@ -100,13 +101,16 @@ void ReconnectOrchestrator::service(uint64_t now) noexcept {
     stepPublish();
     if (!publishActive_)
       return;
-    if (accepted_ > before) {
+    if (accepted_ > before)
       progressMs_ = now;
-      return;
-    }
-    // No forward progress. A lower accepted count already failed the attempt.
-    if (now >= progressMs_ &&
-        now - progressMs_ >= static_cast<uint64_t>(attemptTimeoutMs_))
+    // publishStartedMs_ stays at activation. Forward progress does not extend it.
+    const uint64_t totalMs = static_cast<uint64_t>(attemptTimeoutMs_) * 2u;
+    const bool totalDue = now >= publishStartedMs_ &&
+                          now - publishStartedMs_ >= totalMs;
+    const bool quietDue =
+        accepted_ == before && now >= progressMs_ &&
+        now - progressMs_ >= static_cast<uint64_t>(attemptTimeoutMs_);
+    if (totalDue || quietDue)
       abortPublish(true);
     return;
   }

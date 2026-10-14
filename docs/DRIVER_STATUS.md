@@ -2,11 +2,11 @@
 
 Mock numbers are **SYNTHETIC**. A passing native test is not a calibration, a hardware reading, or an engine result. `compiled-on-board`, `bench`, and `engine-integrated` stay **NOT_RUN**. Only `mock-tested` may be PASS.
 
-The board path is separate. `src/cts/sensors/` calls the sensor's own Arduino library. A non-finite result becomes an invalid sample, not a numeric zero. `utcMs` is still caller-supplied. Nothing below was flashed or read from a chip.
+The board path is separate. `utcMs` is still caller-supplied. Nothing below was flashed or read from a chip.
 
-A finite value from Adafruit BME280 Library 2.3.0 is not proof the I2C/SPI transaction succeeded, because read8/read16/read24 ignore the bool from write_then_read and the class has no public success().
+BME280 does not call `Adafruit_BME280::readTemperature`, `readPressure`, or `readHumidity`. Those getters ignore the bool from `write_then_read`. The sketch reads calibration and measurement registers with `endTransmission` and `requestFrom`. A short read is invalid, not a numeric zero. Compensation uses the integer formulas from Adafruit BME280 Library 2.3.0. That host test is not a bench reading.
 
-One translation unit can include only one of `Protocentral_FDC1004.h` and `FDCxCapSense_FDC1004.h`: both declare a global class named `FDC1004`. `library.properties` `depends` installs both packages. The wrappers stay separate; neither API is removed.
+One translation unit can include only one of `Protocentral_FDC1004.h` and `FDCxCapSense_FDC1004.h`: both declare a global class named `FDC1004`. The wrappers `#error` if both guards are already defined. Neither API is removed.
 
 | Vendor library | Header | Nano 33 BLE compile |
 |---|---|---|

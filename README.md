@@ -1,8 +1,8 @@
 # CodonTraceSwarm
 
-**A C++11 message core. The Arduino examples print a local Serial result and do not join a network or read a sensor.**
+**A C++11 message core. The Arduino examples print a local Serial result and do not join a network. Nothing in this tree was flashed.**
 
-This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL**. Phase 2 remains **PARTIAL**. Phase 3 drivers in this tree are mock-only. Phase 4 and phase 5 are **BLOCKED**. `architectures` lists only cores with at least 128 KB SRAM. That is not tested board support. AVR, SAMD21, UNO R4, ESP8266 and Due are excluded.
+This is a newly tested rebuild after the previous workspace was lost. It is **not** a byte-identical recovery of version 0.1.0. API and test results belong to this snapshot only. Full Phase01 remains **PARTIAL**. Phase 2 remains **PARTIAL**. The six ByteBus drivers are still mock-only. The sensor headers are compile-tested wrappers, not bench results. Phase 4 and phase 5 are **BLOCKED**. `architectures` lists only cores with at least 128 KB SRAM. That is not a measured memory budget and not tested board support. AVR, SAMD21, UNO R4, ESP8266 and Due are excluded.
 
 Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO_PORTABILITY.md) and [phase gates](docs/PHASE_GATES.md).
 
@@ -30,7 +30,7 @@ Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO
 
 - Real loopback TLS MQTT laboratory: two actual C++ nodes, broker ACLs and pinned Genesis host; see [BROKER_LAB.md](docs/BROKER_LAB.md).
 
-- Arduino library metadata and eleven local sketches: `CheckInclude`, `CoreSmoke`, `PortableClock`, `Bme280Adafruit`, `Sht4xAdafruit`, `Ina219Adafruit`, `Vl53l0xAdafruit`, `Hx711Bogde`, `Fdc1004Protocentral`, `FdcxCapSense`, and `AnySensorLibrary`. Each sketch prints a local Serial result only. None opens a socket or connects. They do not read a chip: a failed `begin` does not call the getter, and nothing in this tree was flashed.
+- Arduino library metadata and eleven local sketches: `CheckInclude`, `CoreSmoke`, `PortableClock`, `Bme280Adafruit`, `Sht4xAdafruit`, `Ina219Adafruit`, `Vl53l0xAdafruit`, `Hx711Bogde`, `Fdc1004Protocentral`, `FdcxCapSense`, and `AnySensorLibrary`. Each sketch prints a local Serial result only. None opens a socket. A failed `begin` does not read. Nothing was flashed.
 
 - Board-neutral reconnect policy with bounded backoff, timeout, clock gating and attempt tokens; see [RECONNECT_POLICY.md](docs/RECONNECT_POLICY.md).
 
@@ -44,7 +44,7 @@ Target: boards with at least 128 KB SRAM. See [Arduino portability](docs/ARDUINO
 
 - [Sample scheduler](docs/SAMPLE_SCHEDULER.md): next-deadline `set_rate`, no burst catch-up, stored min/max.
 
-- Optional sensor headers call Adafruit BME280, SHT4x, INA219, VL53L0X, Bogde HX711, ProtoCentral FDC1004, and FDCxCapSense. Any other library passes a finite number through `cts::scalarIfFinite`. Compile-tested for FQBN `arduino:mbed_nano:nano33ble` only, not flashed. The six `ByteBus` drivers remain synthetic test doubles.
+- Optional sensor headers: SHT4x, INA219, VL53L0X, Bogde HX711, ProtoCentral FDC1004, and FDCxCapSense call that library. BME280 does not use the Adafruit getters, because those ignore the I2C status; a checked Wire read feeds the Adafruit 2.3.0 integer compensation. The two FDC1004 headers cannot be included in one sketch. Compile-tested for FQBN `arduino:mbed_nano:nano33ble` only, not flashed. The six `ByteBus` drivers remain synthetic test doubles.
 
 ## Not included yet
 

@@ -39,13 +39,13 @@ jobs:
           arduino-cli core install arduino:mbed_nano
           arduino-cli lib update-index
           arduino-cli lib install \
-            "Adafruit BME280 Library" \
-            "Adafruit SHT4x Library" \
-            "Adafruit INA219" \
-            "Adafruit_VL53L0X" \
-            "HX711 Arduino Library" \
-            "ProtoCentral FDC1004 Capacitive Sensor Library" \
-            "FDCxCapSense"
+            "Adafruit BME280 Library@2.3.0" \
+            "Adafruit SHT4x Library@1.0.5" \
+            "Adafruit INA219@1.2.3" \
+            "Adafruit_VL53L0X@1.2.5" \
+            "HX711 Arduino Library@0.7.5" \
+            "ProtoCentral FDC1004 Capacitive Sensor Library@2.0.1" \
+            "FDCxCapSense@0.6.13"
           rm -rf "$RUNNER_TEMP/sketches"
           cp -a examples "$RUNNER_TEMP/sketches"
           compiled=0

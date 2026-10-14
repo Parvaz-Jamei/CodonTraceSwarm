@@ -47,8 +47,10 @@ struct OrchHealth {
 // retry is queued. Failed means those bytes will not be published later.
 // accepted from the publisher is cumulative. A publish that makes no forward
 // progress for attemptTimeoutMs is cancelled once, counts one loss, and is
-// left inactive. ArduinoMqttAdapter is a different, synchronous backend and
-// is not used here.
+// left inactive. A publish is also cancelled once, with one loss, when it has
+// stayed active for 2 * attemptTimeoutMs since publishStartedMs_. That stamp
+// does not move when accepted increases. Neither cancel is host acceptance.
+// ArduinoMqttAdapter is a different, synchronous backend and is not used here.
 class ReconnectOrchestrator {
 public:
   ReconnectOrchestrator(Device &device, CommandSession &session,
@@ -88,7 +90,7 @@ private:
   OrchHealth health_;
   char wire_[TxBytes] = {};
   size_t size_ = 0, accepted_ = 0;
-  uint64_t generation_ = 0, replySeq_ = 0, progressMs_ = 0;
+  uint64_t generation_ = 0, replySeq_ = 0, progressMs_ = 0, publishStartedMs_ = 0;
   OutKind kind_ = OutKind::None;
   OutKind retryKind_ = OutKind::None;
   bool online_ = false, helloSerialized_ = false, helloComplete_ = false,
