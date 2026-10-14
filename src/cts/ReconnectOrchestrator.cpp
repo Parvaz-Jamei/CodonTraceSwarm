@@ -19,11 +19,13 @@ void ReconnectOrchestrator::clearOnline() noexcept {
   online_ = false;
   helloComplete_ = false;
   helloSerialized_ = false;
+  helloAbandoned_ = false;
   generation_ = 0;
   kind_ = OutKind::None;
   retryKind_ = OutKind::None;
   publishActive_ = false;
   retrySame_ = false;
+  messageStartedMs_ = 0;
   size_ = 0;
   accepted_ = 0;
 }
@@ -76,6 +78,10 @@ bool ReconnectOrchestrator::stepPublish() noexcept {
   return true;
 }
 bool ReconnectOrchestrator::startKind(OutKind kind, uint64_t now) noexcept {
+  // First Hello or Reading attempt only. A retry must not move this stamp.
+  if ((kind == OutKind::Hello || kind == OutKind::Reading) && !retrySame_)
+    messageStartedMs_ = now;
+  retrySame_ = false;
   kind_ = kind;
   publishActive_ = true;
   accepted_ = 0;
@@ -115,10 +121,29 @@ void ReconnectOrchestrator::service(uint64_t now) noexcept {
     return;
   }
   if (retrySame_) {
+    // Message lifetime is not the lifetime of one attempt. Replies never set
+    // retrySame_, so this budget does not drop a pending command reply.
+    const uint64_t budget = static_cast<uint64_t>(attemptTimeoutMs_) * 2u;
+    if (now >= messageStartedMs_ && now - messageStartedMs_ >= budget) {
+      const OutKind dropped = retryKind_;
+      retrySame_ = false;
+      retryKind_ = OutKind::None;
+      if (dropped == OutKind::Hello)
+        helloAbandoned_ = true;
+      bump(health_.losses);
+      return;
+    }
     startKind(retryKind_, now);
     return;
   }
   if (!helloComplete_) {
+    // Budget already counted this hello once. Do not restart it and count again.
+    // A pending reply is not part of that budget and is still published.
+    if (helloAbandoned_) {
+      if (session_.replySize() && !replyFault_)
+        startReply(now);
+      return;
+    }
     if (!helloSerialized_) {
       if (session_.replySize() && !replyFault_) {
         startReply(now);
@@ -167,6 +192,7 @@ void ReconnectOrchestrator::driveAttempt(uint64_t now, bool clockReady,
     generation_ = gen;
     helloComplete_ = false;
     helloSerialized_ = false;
+    helloAbandoned_ = false;
     replyFault_ = false;
     return;
   }

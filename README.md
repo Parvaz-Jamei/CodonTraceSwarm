@@ -4,8 +4,8 @@
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm"><img alt="Arduino Library Spec" src="https://img.shields.io/badge/Arduino%20Library-v1.5-00979C.svg?logo=arduino&logoColor=white"></a>
   <a href="https://en.cppreference.com/w/cpp/11"><img alt="C++ Standard" src="https://img.shields.io/badge/C%2B%2B-11%20Standard-00599C.svg?logo=c%2B%2B&logoColor=white"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
-  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.9-blue.svg"></a>
-  <img alt="SRAM Requirement" src="https://img.shields.io/badge/SRAM-%E2%89%A5128%20KB-orange.svg">
+  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.10-blue.svg"></a>
+  <img alt="128 KB SRAM is listed, not a measured TLS budget" src="https://img.shields.io/badge/SRAM-128%20KB%20listed%2C%20not%20measured%20TLS-orange.svg">
   <img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg">
 </p>
 
@@ -40,7 +40,7 @@
 
 **CodonTraceSwarm** is an embedded C++11 message serialization and dispatch engine conforming to the **Arduino 1.5 Library Specification**. It provides a hardened, deterministic communication layer between physical microcontroller nodes (ESP32, RP2040, ARM Cortex-M) and central research hosts.
 
-Rather than treating sensor data as arbitrary floating-point numbers or raw unstructured JSON strings, CodonTraceSwarm enforces a rigorous schema contract: **typed channels** (scalar, vector, waveform, boolean, categorical), **explicit timestamping and clock uncertainty**, **bounded memory buffers**, and **cryptographically idempotent command sessions**.
+Rather than treating sensor data as arbitrary floating-point numbers or raw unstructured JSON strings, CodonTraceSwarm enforces a schema contract: **typed channels** (scalar, vector, waveform, boolean, categorical), **explicit timestamp fields**, **bounded memory buffers**, and a **16-entry command history**. That history returns `HistoryFull` when it cannot admit another record. It does not silently drop a live record, and it is not cryptography. This library does not authenticate commands.
 
 ---
 
@@ -52,9 +52,9 @@ Most IoT and Arduino libraries suffer from architectural pitfalls that corrupt e
 |---|---|
 | **Heap Fragmentation (`String` / `malloc`)** | **Zero dynamic allocation on hot paths.** Static 34 KiB footprint, fixed 8 KiB transmission buffers, and deterministic stack frames. |
 | **Silent Float / Locale Corruption** | **Strict C-locale numeric serializer.** Guarantees period decimal formatting (`1.50`), strictly rejecting comma locales (`1,50`). |
-| **Command Replay Attacks & Duplication** | **16-entry ring buffer & session nonces.** Commands are authenticated, scoped to boot nonces, and rejected if duplicate or expired. |
+| **Duplicate command admission** | **16-entry history, not a drop ring.** `submit` returns `HistoryFull` when the history is full. Accepted records are not silently dropped. Dedup is not cryptographic, and this library does not authenticate commands. `DeliveryContext.authenticated` is an adapter assertion. |
 | **Phantom Data on Clock Drift** | **Monitored clock with stale-sample gating.** Explicit uncertainty tracking; stale or uncalibrated readings are flagged before transmission. |
-| **Silent Sensor I2C Bus Hangs** | **Hardened checked readers.** Sensor wrappers check bus status on every register read rather than returning stale cached values. |
+| **Silent Sensor I2C Bus Hangs** | **BME280 checked register reads.** That wrapper does not treat a finite Adafruit getter as success after a dead bus. Other wrappers call that sensor's own library. None of these sketches were flashed. |
 
 ---
 
@@ -63,20 +63,20 @@ Most IoT and Arduino libraries suffer from architectural pitfalls that corrupt e
 ```mermaid
 %%{init: {'theme':'base','themeVariables': {'primaryColor':'#e7eef8','primaryTextColor':'#142033','primaryBorderColor':'#1f4e79','lineColor':'#1f4e79','secondaryColor':'#f3efe6','tertiaryColor':'#f4e4dc','fontFamily':'ui-sans-serif, system-ui, sans-serif','fontSize':'14px'}}}%%
 flowchart LR
-  subgraph Node["Edge Microcontroller (ESP32 / RP2040 / Cortex-M)"]
-    Sensors["Physical Sensors<br/>(BME280, SHT4x, INA219, etc.)"] --> Reader["Checked Bus Reader<br/>(CTS Sensor Wrappers)"]
-    Reader --> Registry["Channel Registry<br/>(Up to 8 Typed Channels)"]
-    Registry --> Codec["Device Codec<br/>(Zero-Heap Serializer)"]
-    Clock["MonitoredClock<br/>(Age & Uncertainty Gate)"] --> Codec
-    Codec --> Dispatcher["Command Dispatcher<br/>(16-Entry Dedup Ring)"]
-    Dispatcher --> Reconnect["Reconnect Orchestrator<br/>(Bounded Backoff)"]
+  subgraph Node["Edge microcontroller (not a support matrix)"]
+    Sensors["Physical sensors<br/>(wrappers; not a bench result)"] --> Reader["Sensor wrappers<br/>(BME280 checked reads)"]
+    Reader --> Registry["Channel registry<br/>(up to 8 typed channels)"]
+    Registry --> Codec["Device codec<br/>(fixed buffers)"]
+    Clock["Caller-supplied time<br/>(not millis as UTC)"] --> Codec
+    Codec --> Dispatcher["Command dispatcher<br/>(16-entry history, HistoryFull)"]
+    Dispatcher --> Reconnect["Reconnect orchestrator<br/>(no socket)"]
   end
 
-  Reconnect <== "genesis_swarm_v2 (MQTT / TLS / Serial)" ==> Host["CodonTrace Genesis Host"]
+  Reconnect <== "genesis_swarm_v2 bytes; this library does not open a socket" ==> Host["CodonTrace Genesis Host"]
   
-  subgraph Engine["Host Research Suite"]
-    Host --> Journal["Hash-Chained Journal<br/>(Tamper-Proof Audit)"]
-    Journal --> Evolution["Digital Evolution Engine<br/>(Life-Loop ALife Simulation)"]
+  subgraph Engine["Host research suite (not implemented here)"]
+    Host --> Journal["Host journal"]
+    Journal --> Evolution["Digital evolution engine"]
   end
 ```
 
@@ -96,39 +96,34 @@ Supports rich data types out of the box without string coercion:
 The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. Transmission buffers are bounded (`TxBytes = 8192`), eliminating runtime memory spikes and out-of-memory panics.
 
 ### 3. Bidirectional Command Engine
-- Bounded 8-command FIFO queue with local callback dispatch.
-- 16-entry history ring preventing duplicate executions upon network retries.
-- Fine-grained permission model: nodes explicitly `allow()` operations (`sample`, `raw`, `features`, `result`, `set_rate`, `pipeline`, `capsule`) per channel.
+- Bounded 8-command FIFO. `runOne` calls a `CommandExecutor`.
+- 16-entry history. When it is full, `submit` returns `HistoryFull`. It is not a ring that silently drops records, and it is not cryptography.
+- `Device::allow` records an application grant for a channel operation. It does not authenticate a command.
 
 ### 4. Resilient Network Orchestration
-- **`ReconnectOrchestrator`**: Enforces strict hello-before-reading handshakes, non-blocking backoff state machines, and in-flight message loss counters.
-- **`ArduinoMqttAdapter`**: Optional modular adapter for standard MQTT loopback and TLS broker nodes.
+- **`ReconnectOrchestrator`**: Hello before reading, and loss accounting for a publish that fails or stalls. It does not open a socket. A Hello or Reading retry is bounded by `2 * attemptTimeoutMs` from the first attempt of that message. A pending command reply is not dropped by that budget. PUBACK is not Genesis application acceptance.
+- **`ArduinoMqttAdapter`**: Optional synchronous MQTT helper. It is not the nonblocking reconnect seam. No broker round-trip is claimed done.
 
-### 5. Verified Sensor Library Glue
-Pre-built, compile-tested wrappers for industry-standard sensors:
-- **Bosch BME280** (Temperature, Pressure, Humidity via checked registers, bypassing buggy driver getters)
-- **Sensirion SHT4x** (High-precision relative humidity and temperature)
-- **TI INA219** (Voltage, Current, and Power monitoring)
-- **ST VL53L0X** (Time-of-Flight distance sensing)
-- **Bogde HX711** (Precision 24-bit ADC for load cells)
-- **ProtoCentral FDC1004 & FDCxCapSense** (Capacitive liquid and proximity sensing)
+### 5. Sensor Library Glue
+Wrappers call the sensor library named in the header (BME280 uses checked register reads instead of the Adafruit getters). They were compile-tested only for FQBN `arduino:mbed_nano:nano33ble`. They were not flashed and not bench-tested.
+- **Bosch BME280** (checked calibration and measurement bytes)
+- **Sensirion SHT4x**
+- **TI INA219**
+- **ST VL53L0X**
+- **Bogde HX711** (library scale unit, not a calibrated mass)
+- **ProtoCentral FDC1004** and **FDCxCapSense** (separate headers; do not include both)
 
 ---
 
 ## 🖥️ Hardware Compatibility
 
-CodonTraceSwarm enforces a **strict $\ge$128 KB SRAM threshold** to ensure predictable buffer allocation without heap exhaustion:
+`library.properties` lists architectures described as having at least 128 KB SRAM and excludes smaller parts. 128 KB is not a measured TLS budget, and this library does not measure or enforce runtime headroom.
 
-| Architecture / Platform | Target SoC / Board | Status | Memory Profile |
-|---|---|:---:|---|
-| **Espressif ESP32** | ESP32-WROOM, S2, S3, C3, C6 | ✅ **Supported** | 320 KB – 512 KB SRAM |
-| **Raspberry Pi RP2040** | Raspberry Pi Pico, Pico W | ✅ **Supported** | 264 KB SRAM |
-| **ARM Cortex-M4 / M7** | Arduino Portenta H7, GIGA R1 WiFi | ✅ **Supported** | 512 KB – 1 MB SRAM |
-| **Nordic nRF52840** | Arduino Nano 33 BLE, Nicla Sense | ✅ **Supported** | 256 KB SRAM |
-| **Renesas RA6M5** | Arduino Portenta C33 | ✅ **Supported** | 512 KB SRAM |
-| **AVR 8-bit** | Arduino Uno R3, Nano, Mega 2560 | ❌ **Excluded** | $\le$8 KB SRAM (Insufficient) |
-| **Microchip SAMD21** | Arduino Zero, MKR Series | ❌ **Excluded** | 32 KB SRAM (Insufficient) |
-| **Espressif ESP8266** | NodeMCU, ESP-01 | ❌ **Excluded** | $\le$80 KB SRAM (Insufficient) |
+| Target | How it is recorded | Status |
+|---|---|---|
+| **Arduino Nano 33 BLE** | FQBN `arduino:mbed_nano:nano33ble` | Compile-tested in CI. Not flashed. Not bench-tested. |
+| **esp32, rp2040, mbed_rp2040, mbed_portenta, mbed_giga, mbed_opta, renesas_portenta** | `architectures` in `library.properties` | Listed only. Not bench-tested and not compile-tested in CI. |
+| **AVR, megaAVR, SAMD21, UNO R4, ESP8266, Due** | Excluded by `library.properties` | Not supported. |
 
 ---
 
@@ -152,14 +147,18 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 lib_deps =
-    https://github.com/Parvaz-Jamei/CodonTraceSwarm.git#v0.12.9
+    https://github.com/Parvaz-Jamei/CodonTraceSwarm.git#0.12.10
 ```
+
+The git tag is `0.12.10`, not `v0.12.10`. The `esp32dev` environment above only shows how to name the dependency. ESP32 is listed in `library.properties` and was not compile-tested in CI.
 
 ---
 
 ## 🚀 Quick Start & Code Examples
 
 ### 1. Minimal Telemetry Producer
+
+`kSyntheticUtcMs` is not millis() and not a measured clock. `session.wifi` is true only because `Device::begin` rejects a false flag. This snippet does not open a socket. `descriptor.type` below is the C++ field, not a wire name.
 
 ```cpp
 #include <Arduino.h>
@@ -168,11 +167,12 @@ lib_deps =
 // Allocate in global/static storage to avoid stack overflow (34 KiB footprint)
 static cts::Device device;
 static char wireBuffer[cts::TxBytes];
+// not millis() and not a measured clock.
+static const uint64_t kSyntheticUtcMs = 1791331500000ULL;
 
 void setup() {
   Serial.begin(115200);
 
-  // 1. Define a strongly-typed telemetry channel
   cts::ChannelSpec tempChannel;
   tempChannel.name = "ambient_temp";
   tempChannel.quantity = "temperature";
@@ -186,12 +186,17 @@ void setup() {
     Serial.println("Error defining channel!");
     return;
   }
+  if (device.allow("ambient_temp", cts::Operation::Sample) != cts::Error::Ok ||
+      device.allow("ambient_temp", cts::Operation::SetRate) != cts::Error::Ok) {
+    Serial.println("Error granting operation!");
+    return;
+  }
 
-  // 2. Initialize the session config
   cts::SessionConfig session;
   session.swarmId = "lab_station_01";
   session.nodeId = "esp32_node_alpha";
   session.bootId = "boot_20261014_001";
+  // begin() requires wifi true. This snippet does not open a socket.
   session.wifi = true;
 
   if (device.begin(session) != cts::Error::Ok) {
@@ -199,7 +204,6 @@ void setup() {
     return;
   }
 
-  // 3. Emit the mandatory Hello handshake packet
   if (device.hello(wireBuffer, sizeof(wireBuffer)) == cts::Error::Ok) {
     Serial.println("=== HELLO PACKET ===");
     Serial.println(wireBuffer);
@@ -207,13 +211,12 @@ void setup() {
 }
 
 void loop() {
-  // 4. Sample and emit telemetry
-  uint64_t simulatedUtcMs = 1791331500000ULL + millis();
-  cts::Sample sample = cts::Sample::scalar(24.85, simulatedUtcMs);
+  cts::Sample sample = cts::Sample::scalar(24.85, kSyntheticUtcMs);
 
   if (device.reading("ambient_temp", sample, wireBuffer, sizeof(wireBuffer)) == cts::Error::Ok) {
     Serial.println("=== READING PACKET ===");
     Serial.println(wireBuffer);
+    Serial.println("Local buffer only. The line was not sent.");
   }
 
   delay(5000);
@@ -224,48 +227,67 @@ void loop() {
 
 ### 2. Multi-axis Vectors & Waveforms
 
+`kVectorUtcMs` is not millis() and not a measured clock. This snippet does not open a socket. `define` and `begin` are checked. `descriptor.featureId`, `configId`, and `sourceUnit` are required by `define`.
+
 ```cpp
 #include <Arduino.h>
 #include <CodonTraceSwarm.h>
 
 static cts::Device device;
 static char txBuffer[cts::TxBytes];
+// not millis() and not a measured clock.
+static const uint64_t kVectorUtcMs = 1791331601000ULL;
 
 void setup() {
   Serial.begin(115200);
 
-  // Define a 3D Vector channel (e.g. Accelerometer)
   cts::ChannelSpec imuChannel;
   imuChannel.name = "acceleration";
   imuChannel.quantity = "acceleration";
   imuChannel.unit = "m/s2";
   imuChannel.descriptor.type = cts::ValueType::Vector;
+  imuChannel.descriptor.featureId = "imu_accel";
+  imuChannel.descriptor.configId = "imu_v1";
+  imuChannel.descriptor.sourceUnit = "m/s2";
   imuChannel.descriptor.axes[0] = "x";
   imuChannel.descriptor.axes[1] = "y";
   imuChannel.descriptor.axes[2] = "z";
   imuChannel.descriptor.axisCount = 3;
 
-  device.define(imuChannel);
+  if (device.define(imuChannel) != cts::Error::Ok) {
+    Serial.println("Error defining channel!");
+    return;
+  }
 
   cts::SessionConfig session;
   session.swarmId = "field_test";
   session.nodeId = "imu_node";
   session.bootId = "boot_nonce_99";
-  device.begin(session);
+  // begin() requires wifi true. This snippet does not open a socket.
+  session.wifi = true;
+  if (device.begin(session) != cts::Error::Ok) {
+    Serial.println("Error starting session!");
+    return;
+  }
+  if (device.hello(txBuffer, sizeof(txBuffer)) == cts::Error::Ok) {
+    Serial.println(txBuffer);
+    Serial.println("Local hello only. The line was not sent.");
+  }
 }
 
 void loop() {
   cts::Sample sample;
   sample.valid = true;
   sample.status = "ok";
-  sample.utcMs = 1791331600000ULL + millis();
-  sample.values[0] = 0.02;  // x
-  sample.values[1] = -0.15; // y
-  sample.values[2] = 9.81;  // z
+  sample.utcMs = kVectorUtcMs;
+  sample.values[0] = 0.02;
+  sample.values[1] = -0.15;
+  sample.values[2] = 9.81;
   sample.count = 3;
 
   if (device.reading("acceleration", sample, txBuffer, sizeof(txBuffer)) == cts::Error::Ok) {
     Serial.println(txBuffer);
+    Serial.println("Local reading only. The line was not sent.");
   }
   delay(1000);
 }
@@ -275,37 +297,105 @@ void loop() {
 
 ### 3. Safe Host Command Dispatcher
 
+SYNTHETIC. This is a complete sketch against `Dispatcher`'s real constructor. There is no default constructor, no `bind`, and no `setHandler`. `DeliveryContext.authenticated` is an adapter assertion. This library does not authenticate commands. The clock value is not millis() and not a measured clock. This snippet does not open a socket.
+
 ```cpp
 #include <Arduino.h>
 #include <CodonTraceSwarm.h>
 #include <cts/Dispatcher.h>
+#include <cstring>
+
+// not millis() and not a measured clock.
+static const uint64_t kSyntheticUtcMs = 1791331500000ULL;
+
+class SyntheticClock : public cts::ClockProvider {
+ public:
+  cts::ClockReading read() noexcept override {
+    cts::ClockReading reading;
+    reading.utcMs = kSyntheticUtcMs;
+    reading.monotonicMs = 1000;
+    reading.synchronized = true;
+    return reading;
+  }
+};
+
+class SyntheticPolicy : public cts::CommandPolicy {
+ public:
+  bool permits(const cts::Command &command) const noexcept override {
+    return command.operation == cts::Operation::Sample &&
+           std::strcmp(command.channel, "ambient_temp") == 0;
+  }
+};
+
+class SyntheticExecutor : public cts::CommandExecutor {
+ public:
+  bool execute(const cts::Command &command) noexcept override {
+    Serial.print("SYNTHETIC execute id=");
+    Serial.println(command.id);
+    return true;
+  }
+};
 
 static cts::Device device;
-static cts::Dispatcher dispatcher;
-
-// Idempotent command handler callback
-cts::Error onCommandReceived(const char* channel, cts::Operation op, const char* paramsJson) {
-  Serial.print("Executing command on channel: ");
-  Serial.println(channel);
-  // Execute local hardware task safely...
-  return cts::Error::Ok;
-}
+static SyntheticClock clockProvider;
+static SyntheticPolicy policy;
+static SyntheticExecutor executor;
+static cts::Dispatcher dispatcher(clockProvider, policy);
 
 void setup() {
   Serial.begin(115200);
 
-  // Only allow explicitly granted operations
-  device.allow("ambient_temp", cts::Operation::Sample);
-  device.allow("ambient_temp", cts::Operation::SetRate);
+  cts::ChannelSpec channel;
+  channel.name = "ambient_temp";
+  channel.quantity = "temperature";
+  channel.unit = "degC";
+  channel.descriptor.featureId = "bme280_probe";
+  channel.descriptor.configId = "sensor_v1";
+  channel.descriptor.sourceUnit = "degC";
+  if (device.define(channel) != cts::Error::Ok) {
+    Serial.println("define failed");
+    return;
+  }
+  if (device.allow("ambient_temp", cts::Operation::Sample) != cts::Error::Ok) {
+    Serial.println("allow failed");
+    return;
+  }
 
-  dispatcher.bind(&device);
-  dispatcher.setHandler(onCommandReceived);
+  if (dispatcher.begin("lab_station_01", "esp32_node_alpha", "boot_20261014_001") !=
+      cts::DispatchCode::Ok) {
+    Serial.println("dispatcher begin failed");
+    return;
+  }
+
+  static const char command[] =
+      "{\"schema\":\"genesis_swarm_command_v1\",\"swarm_id\":\"lab_station_01\","
+      "\"node_id\":\"esp32_node_alpha\",\"boot_id\":\"boot_20261014_001\","
+      "\"command_id\":\"c1\",\"operation\":\"sample\","
+      "\"params\":{\"channel\":\"ambient_temp\"},"
+      "\"created_ms\":1791331500000,\"expires_ms\":1791331505000,"
+      "\"status\":\"pending\"}";
+  cts::DeliveryContext delivery;
+  // Adapter assertion only. This library does not authenticate.
+  delivery.authenticated = true;
+  delivery.retained = false;
+  const cts::DispatchResult submitted =
+      dispatcher.submit(command, sizeof(command) - 1, delivery);
+  const cts::DispatchResult ran = dispatcher.runOne(executor);
+  Serial.print("SYNTHETIC submit=");
+  Serial.println(submitted.code == cts::DispatchCode::Queued ? "Queued" : "not-queued");
+  Serial.print("SYNTHETIC run=");
+  Serial.println(ran.state == cts::CommandState::Succeeded ? "Succeeded" : "not-succeeded");
+  Serial.println("SYNTHETIC dispatcher sketch. The line was not sent. This library does not authenticate commands.");
 }
+
+void loop() {}
 ```
 
 ---
 
 ### 4. Hardened Sensor Integration (BME280)
+
+The third argument of `bme280ReadChecked` is caller-supplied and is not a clock. This sketch was not flashed. This snippet does not open a socket. Do not pass `millis()`.
 
 ```cpp
 #include <Wire.h>
@@ -313,29 +403,42 @@ void setup() {
 #include <CodonTraceSwarm.h>
 #include <cts/sensors/Bme280Adafruit.h>
 
-static cts::Device device;
 static Adafruit_BME280 bme;
 static const uint8_t kBmeAddress = 0x76;
+static bool chipOpened = false;
+// not millis() and not a measured clock.
+static const uint64_t kCallerSuppliedMs = 1791331500000ULL;
 
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-
-  if (!bme.begin(kBmeAddress)) {
-    Serial.println("BME280 initialization failed!");
-    while (1);
+  chipOpened = bme.begin(kBmeAddress);
+  if (!chipOpened) {
+    Serial.println("BME280 begin returned false. Checked read not called. This sketch was not flashed.");
+    return;
   }
-  // Setup channels and begin session...
+  Serial.println("BME280 begin returned true. Not a bench result. This sketch was not flashed.");
 }
 
 void loop() {
-  // Checked read validates I2C bus status and uses 32-bit integer compensation
-  cts::Bme280Checked reading = cts::bme280ReadChecked(Wire, kBmeAddress, millis());
-
-  if (reading.temperature.valid) {
-    Serial.print("Temperature: ");
-    Serial.println(reading.temperature.value);
+  if (!chipOpened) {
+    Serial.println("Checked read not called. The line was not sent. This sketch was not flashed.");
+    delay(2000);
+    return;
   }
+  // The third argument is caller-supplied and is not a clock.
+  cts::Bme280Checked reading =
+      cts::bme280ReadChecked(Wire, kBmeAddress, kCallerSuppliedMs);
+
+  Serial.print("temperature=");
+  Serial.print(reading.temperature.value);
+  Serial.print(" degC valid=");
+  Serial.print(reading.temperature.valid ? "true" : "false");
+  Serial.print(" pressure=");
+  Serial.print(reading.pressure.value);
+  Serial.print(" Pa humidity=");
+  Serial.print(reading.humidity.value);
+  Serial.println(" percent. The line was not sent. This sketch was not flashed.");
   delay(2000);
 }
 ```
@@ -344,71 +447,42 @@ void loop() {
 
 ## 📡 Protocol Wire Format (`genesis_swarm_v2`)
 
-All packets adhere strictly to the JSON schema validated by the central `codontrace.swarm` Python coordinator:
+These are the compact bytes produced by `device.hello` and `device.reading` for the snippets above, not a hand-written schema. The C++ field is `descriptor.type`. The encoder writes `value_type` and `measurement_model`. Vector samples are a JSON array in `value`, not `values` and not `count`. `"wifi":true` is emitted by the codec after `begin` accepts the session. The snippets do not open a socket. Numeric text is the encoder's `%.17g` formatting.
 
-#### Hello Handshake (`kind: "hello"`)
+#### Hello from section 1 (`Device::hello`)
 ```json
-{
-  "schema": "genesis_swarm_v2",
-  "swarm_id": "lab_station_01",
-  "node_id": "esp32_node_alpha",
-  "boot_id": "boot_20261014_001",
-  "seq": 0,
-  "kind": "hello",
-  "payload": {
-    "wifi": true,
-    "channels": {
-      "ambient_temp": {
-        "quantity": "temperature",
-        "unit": "degC",
-        "descriptor": {
-          "type": "scalar",
-          "model": "direct",
-          "feature_id": "bme280_probe",
-          "config_id": "sensor_v1",
-          "source_unit": "degC"
-        }
-      }
-    },
-    "operations": ["sample", "set_rate"]
-  }
-}
+{"schema":"genesis_swarm_v2","swarm_id":"lab_station_01","node_id":"esp32_node_alpha","boot_id":"boot_20261014_001","seq":0,"kind":"hello","payload":{"wifi":true,"channels":{"ambient_temp":{"quantity":"temperature","unit":"degC","descriptor":{"value_type":"scalar","measurement_model":"direct","feature_id":"bme280_probe","config_id":"sensor_v1","source_unit":"degC"}}},"operations":["sample","set_rate"]}}
 ```
 
-#### Vector Reading (`kind: "reading"`)
+#### Scalar reading from section 1 (`Device::reading`)
 ```json
-{
-  "schema": "genesis_swarm_v2",
-  "swarm_id": "field_test",
-  "node_id": "imu_node",
-  "boot_id": "boot_nonce_99",
-  "seq": 14,
-  "kind": "reading",
-  "payload": {
-    "channel": "acceleration",
-    "sample_ms": 1791331601000,
-    "valid": true,
-    "status": "ok",
-    "values": [0.02, -0.15, 9.81],
-    "count": 3
-  }
-}
+{"schema":"genesis_swarm_v2","swarm_id":"lab_station_01","node_id":"esp32_node_alpha","boot_id":"boot_20261014_001","seq":1,"kind":"reading","payload":{"channel":"ambient_temp","sample_ms":1791331500000,"value":24.850000000000001,"processing_version":"cts-rebuild-01","valid":true,"status":"ok","config_id":"sensor_v1"}}
+```
+
+#### Vector hello from section 2 (`Device::hello`)
+```json
+{"schema":"genesis_swarm_v2","swarm_id":"field_test","node_id":"imu_node","boot_id":"boot_nonce_99","seq":0,"kind":"hello","payload":{"wifi":true,"channels":{"acceleration":{"quantity":"acceleration","unit":"m/s2","descriptor":{"value_type":"vector","measurement_model":"direct","feature_id":"imu_accel","config_id":"imu_v1","source_unit":"m/s2","axes":["x","y","z"]}}},"operations":[]}}
+```
+
+#### Vector reading from section 2 (`Device::reading`)
+```json
+{"schema":"genesis_swarm_v2","swarm_id":"field_test","node_id":"imu_node","boot_id":"boot_nonce_99","seq":1,"kind":"reading","payload":{"channel":"acceleration","sample_ms":1791331601000,"value":[0.02,-0.14999999999999999,9.8100000000000005],"processing_version":"cts-rebuild-01","valid":true,"status":"ok","config_id":"imu_v1"}}
 ```
 
 ---
 
 ## 🧪 Native Verification & Test Harness
 
-CodonTraceSwarm features an exhaustive native test harness executable on host workstations without hardware attached:
+Native tests run on a host workstation. They are not a broker round-trip and not N10.
 
 ```bash
-# 1. Run all 17 native C++ contract test suites
+# 1. Run the native C++ contract tests
 python3 tools/check.py
 
 # 2. Run with AddressSanitizer & UndefinedBehaviorSanitizer
 python3 tools/check.py --sanitize
 
-# 3. Verify against a pinned CodonTrace Genesis Python host
+# 3. Optional pinned CodonTrace Genesis checkout. This is not N06's broker round-trip, and N10 is not done.
 python3 tools/check.py --host /path/to/codontrace-genesis
 ```
 
@@ -423,15 +497,15 @@ ctest --test-dir build --output-on-failure
 
 ## 🚦 Phase Gates & Audit Status
 
-To preserve scientific rigor, all capabilities are subject to strict claim gating:
-
-| Capability Subsystem | Current Status | Audit Verification |
-|---|:---:|---|
-| **C++11 Codec & JSON Serializer** | ✅ **VERIFIED** | Full native unit tests passing with AddressSanitizer. |
-| **Command Deduplication & FIFO** | ✅ **VERIFIED** | Host-to-node roundtrip integration verified. |
-| **Reconnect Orchestrator State Machine** | ✅ **VERIFIED** | Simulated loopback TLS MQTT crash/recovery tests. |
-| **Checked Sensor Wrappers** | 🟡 **COMPILE-TESTED** | Compile-checked against vendor headers; bench qualification pending. |
-| **Physical Hardware Bench Qualification** | ⏳ **IN-PROGRESS** | ESP32 physical Wi-Fi soak test running in lab campaign. |
+| Capability | Status | What that status means |
+|---|---|---|
+| **C++11 codec and JSON** | Native tests | `tools/check.py` on the host. Not a board soak. |
+| **Command history and FIFO** | Native tests | 16-entry history returns `HistoryFull` when full. Not a broker round-trip. This library does not authenticate commands. |
+| **Reconnect orchestrator** | Native tests | Synthetic publisher and connect client. Not a TLS MQTT crash test. |
+| **Sensor wrappers** | Compile-tested on one FQBN | `arduino:mbed_nano:nano33ble` only. Not flashed. Not bench-tested. |
+| **Other `library.properties` architectures** | Listed | Not bench-tested and not compile-tested in CI. |
+| **N06 broker round-trip** | Not done | Sensor sketches do not deliver a host journal entry. |
+| **N10 reply recovery against lost Genesis state** | Not done | PUBACK is not Genesis application acceptance. |
 
 ---
 

@@ -41,16 +41,19 @@ void loop() {
   }
   cts::Sample sample =
       cts::protocentralFdc1004Picofarads(chip, FDC1004_CHANNEL_0, 0);
+  Serial.print("capacitance=");
+  Serial.print(sample.value);
+  Serial.print(" pF");
   if (!codecReady) {
-    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    Serial.println(". device define or begin failed. reading() not called. The line was not sent. Timestamp is not a clock.");
     delay(3000);
     return;
   }
   cts::Error encoded = device.reading("capacitance", sample, message, sizeof message);
-  Serial.print("fdc1004 valid=");
+  Serial.print(" valid=");
   Serial.print(sample.valid ? "true" : "false");
   Serial.print(" encode=");
   Serial.print(cts::errorName(encoded));
-  Serial.println(". Local JSON only. Not sent. Timestamp is not a clock.");
+  Serial.println(". Local JSON only. The line was not sent. Timestamp is not a clock.");
   delay(3000);
 }

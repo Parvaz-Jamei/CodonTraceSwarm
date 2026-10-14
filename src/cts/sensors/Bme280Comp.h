@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 // Pure BME280 compensation. No Arduino, Wire, or Adafruit headers.
-// Integer steps are copied from Adafruit_BME280.cpp readTemperature,
-// readPressure, and readHumidity (library 2.3.0). t_fine is produced from
-// the same temperature bytes that feed pressure and humidity.
-// Sampling registers inside Adafruit_BME280 are not visible here. A missing
-// calibration image is not a number. Pressure's var1==0 case is numeric 0
-// only for a transfer that already succeeded.
+// Integer steps in bme280Compensate were copied from Adafruit_BME280.cpp
+// (readTemperature, readPressure, and readHumidity) in the Adafruit BME280
+// Library, commit ef712e95147de926b4545e379f6296ad271529b5 (version 2.3.0),
+// which is BSD-3-Clause. Full notice: THIRD_PARTY_NOTICES. This copy is not
+// a Bosch SensorAPI port and is not a datasheet certificate.
+// A null or short calibration or measurement image invalidates every sample.
+// dig_P1==0 does not run the pressure division and is invalid_calibration.
+// The p1==0 division-guard 0 is the same status, not a published sample.
+// A pressure the integer sequence actually computes as 0 Pa stays valid.
+// Numeric zero is not banned for any other finite result.
 #include "../SensorSample.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -41,14 +45,18 @@ struct Bme280Compensated {
   double temperatureC;
   double pressurePa;
   double humidityPercent;
+  // False when pressure was not computed (dig_P1==0 or the division guard).
+  // A computed pressure of 0 Pa leaves this true.
+  bool pressureMeasured;
 };
 struct Bme280Samples {
   Sample temperature;
   Sample pressure;
   Sample humidity;
 };
-// bytesGot < bytesNeeded is a short read. candidate is not published:
-// a failed transfer is never a valid number, including the pressure formula's 0.
+// bytesGot < bytesNeeded is a short read. The candidate is not published.
+// A finite numeric 0 stays valid when the transfer length is complete.
+// dig_P1==0 is not decided here.
 inline Sample bme280ShortReadSample(size_t bytesGot, size_t bytesNeeded,
                                     double candidate, uint64_t utcMs) {
   if (bytesGot < bytesNeeded)
@@ -59,6 +67,14 @@ inline Sample bme280ShortReadSample(size_t bytesGot, size_t bytesNeeded,
 inline uint16_t bme280LoadLe16(const uint8_t *p) {
   return static_cast<uint16_t>(static_cast<uint16_t>(p[0]) |
                                (static_cast<uint16_t>(p[1]) << 8));
+}
+// 12-bit two's-complement field. Unsigned assembly, then sign-extend from
+// bit 11. No signed left shift (undefined in C++11 when the value is negative).
+inline int16_t bme280SignExtend12(uint16_t field) {
+  const uint16_t twelve = static_cast<uint16_t>(field & 0x0FFFu);
+  if ((twelve & 0x0800u) != 0u)
+    return static_cast<int16_t>(static_cast<int>(twelve) - 4096);
+  return static_cast<int16_t>(twelve);
 }
 inline bool bme280UnpackCalibration(const uint8_t *tempPress, size_t tempPressLen,
                                     const uint8_t *humidity, size_t humidityLen,
@@ -81,11 +97,16 @@ inline bool bme280UnpackCalibration(const uint8_t *tempPress, size_t tempPressLe
   cal.dig_H1 = tempPress[25];
   cal.dig_H2 = static_cast<int16_t>(bme280LoadLe16(humidity + 0));
   cal.dig_H3 = humidity[2];
-  // Adafruit readCoefficients: ((int8_t)reg << 4) combined with the shared nibble.
-  cal.dig_H4 = static_cast<int16_t>((static_cast<int8_t>(humidity[3]) << 4) |
-                                   (humidity[4] & 0x0F));
-  cal.dig_H5 = static_cast<int16_t>((static_cast<int8_t>(humidity[5]) << 4) |
-                                   (humidity[4] >> 4));
+  // Adafruit readCoefficients layout: high 8 bits in one byte, low 4 bits
+  // from the shared nibble. Built in unsigned arithmetic, then sign-extended.
+  const uint16_t h4Field = static_cast<uint16_t>(
+      (static_cast<uint16_t>(humidity[3]) << 4) |
+      (static_cast<uint16_t>(humidity[4]) & 0x0Fu));
+  const uint16_t h5Field = static_cast<uint16_t>(
+      (static_cast<uint16_t>(humidity[5]) << 4) |
+      (static_cast<uint16_t>(humidity[4]) >> 4));
+  cal.dig_H4 = bme280SignExtend12(h4Field);
+  cal.dig_H5 = bme280SignExtend12(h5Field);
   cal.dig_H6 = static_cast<int8_t>(humidity[6]);
   return true;
 }
@@ -118,26 +139,36 @@ inline Bme280Compensated bme280Compensate(const Bme280Calib &cal, const Bme280Ad
   const float temperature = (float)T / 100;
   out.temperatureC = (double)temperature;
 
-  int64_t p1, p2, p3, p4;
-  const int32_t adc_P = adc.adc_P;
-  p1 = ((int64_t)out.t_fine) - 128000;
-  p2 = p1 * p1 * (int64_t)cal.dig_P6;
-  p2 = p2 + ((p1 * (int64_t)cal.dig_P5) * 131072);
-  p2 = p2 + (((int64_t)cal.dig_P4) * 34359738368);
-  p1 = ((p1 * p1 * (int64_t)cal.dig_P3) / 256) +
-       ((p1 * ((int64_t)cal.dig_P2) * 4096));
-  p3 = ((int64_t)1) * 140737488355328;
-  p1 = (p3 + p1) * ((int64_t)cal.dig_P1) / 8589934592;
-  if (p1 == 0) {
+  if (cal.dig_P1 == 0) {
+    // Not a pressure measurement. Do not run the pressure division. The
+    // placeholder 0 is not a sample.
     out.pressurePa = 0;
+    out.pressureMeasured = false;
   } else {
-    p4 = 1048576 - adc_P;
-    p4 = (((p4 * 2147483648) - p2) * 3125) / p1;
-    p1 = (((int64_t)cal.dig_P9) * (p4 / 8192) * (p4 / 8192)) / 33554432;
-    p2 = (((int64_t)cal.dig_P8) * p4) / 524288;
-    p4 = ((p4 + p1 + p2) / 256) + (((int64_t)cal.dig_P7) * 16);
-    const float pressure = (float)(p4 / 256.0);
-    out.pressurePa = (double)pressure;
+    int64_t p1, p2, p3, p4;
+    const int32_t adc_P = adc.adc_P;
+    p1 = ((int64_t)out.t_fine) - 128000;
+    p2 = p1 * p1 * (int64_t)cal.dig_P6;
+    p2 = p2 + ((p1 * (int64_t)cal.dig_P5) * 131072);
+    p2 = p2 + (((int64_t)cal.dig_P4) * 34359738368);
+    p1 = ((p1 * p1 * (int64_t)cal.dig_P3) / 256) +
+         ((p1 * ((int64_t)cal.dig_P2) * 4096));
+    p3 = ((int64_t)1) * 140737488355328;
+    p1 = (p3 + p1) * ((int64_t)cal.dig_P1) / 8589934592;
+    if (p1 == 0) {
+      // Division guard. This 0 is not a pressure measurement.
+      out.pressurePa = 0;
+      out.pressureMeasured = false;
+    } else {
+      p4 = 1048576 - adc_P;
+      p4 = (((p4 * 2147483648) - p2) * 3125) / p1;
+      p1 = (((int64_t)cal.dig_P9) * (p4 / 8192) * (p4 / 8192)) / 33554432;
+      p2 = (((int64_t)cal.dig_P8) * p4) / 524288;
+      p4 = ((p4 + p1 + p2) / 256) + (((int64_t)cal.dig_P7) * 16);
+      const float pressure = (float)(p4 / 256.0);
+      out.pressurePa = (double)pressure;
+      out.pressureMeasured = true;
+    }
   }
 
   int32_t h1, h2, h3, h4, h5;
@@ -161,8 +192,9 @@ inline Bme280Compensated bme280Compensate(const Bme280Calib &cal, const Bme280Ad
   out.humidityPercent = (double)humidity;
   return out;
 }
-// Short images are invalid and are not compensated. Full images use the
-// integer formulas, then the short-read gate so a 0 from var1==0 stays valid.
+// Any null or short image invalidates all three samples. Complete images use
+// the Adafruit 2.3.0 integer sequence. dig_P1==0 and the p1==0 division
+// guard are invalid_calibration. A computed pressure of 0 Pa stays valid.
 inline Bme280Samples bme280SamplesFromRegisters(const uint8_t *tempPress,
                                                size_t tempPressLen,
                                                const uint8_t *humidity,
@@ -173,24 +205,26 @@ inline Bme280Samples bme280SamplesFromRegisters(const uint8_t *tempPress,
   Bme280Samples out;
   if (tempPress == nullptr || humidity == nullptr || measurement == nullptr ||
       tempPressLen < 26 || humidityLen < 7 || measurementLen < 8) {
-    const size_t gotMeas = measurement == nullptr ? 0 : measurementLen;
-    out.temperature = bme280ShortReadSample(0, 1, 0.0, utcMs);
-    out.pressure = bme280ShortReadSample(gotMeas, 8, 0.0, utcMs);
-    out.humidity = bme280ShortReadSample(0, 1, 0.0, utcMs);
+    out.temperature = Sample::invalid("read_failed", utcMs);
+    out.pressure = Sample::invalid("read_failed", utcMs);
+    out.humidity = Sample::invalid("read_failed", utcMs);
     return out;
   }
   Bme280Calib cal;
   Bme280Adc raw;
   if (!bme280UnpackCalibration(tempPress, tempPressLen, humidity, humidityLen, cal) ||
       !bme280UnpackMeasurement(measurement, measurementLen, raw)) {
-    out.temperature = bme280ShortReadSample(0, 1, 0.0, utcMs);
-    out.pressure = bme280ShortReadSample(0, 1, 0.0, utcMs);
-    out.humidity = bme280ShortReadSample(0, 1, 0.0, utcMs);
+    out.temperature = Sample::invalid("read_failed", utcMs);
+    out.pressure = Sample::invalid("read_failed", utcMs);
+    out.humidity = Sample::invalid("read_failed", utcMs);
     return out;
   }
   const Bme280Compensated comp = bme280Compensate(cal, raw);
   out.temperature = bme280ShortReadSample(tempPressLen, 26, comp.temperatureC, utcMs);
-  out.pressure = bme280ShortReadSample(measurementLen, 8, comp.pressurePa, utcMs);
+  if (!comp.pressureMeasured)
+    out.pressure = Sample::invalid("invalid_calibration", utcMs);
+  else
+    out.pressure = bme280ShortReadSample(measurementLen, 8, comp.pressurePa, utcMs);
   out.humidity = bme280ShortReadSample(humidityLen, 7, comp.humidityPercent, utcMs);
   return out;
 }

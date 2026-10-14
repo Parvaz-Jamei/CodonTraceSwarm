@@ -53,8 +53,13 @@ void loop() {
   const double humidityFromLibrary = chip.readHumidity();
   cts::Sample temperature = cts::scalarIfFinite(temperatureFromLibrary, 0);
   cts::Sample humidity = cts::scalarIfFinite(humidityFromLibrary, 0);
+  Serial.print("temperature=");
+  Serial.print(temperature.value);
+  Serial.print(" degC humidity=");
+  Serial.print(humidity.value);
+  Serial.print(" %RH");
   if (!codecReady) {
-    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    Serial.println(". device define or begin failed. reading() not called. The line was not sent. Timestamp is not a clock.");
     delay(3000);
     return;
   }
@@ -62,14 +67,10 @@ void loop() {
       device.reading("temperature", temperature, message, sizeof message);
   cts::Error humidityEncoded =
       device.reading("humidity", humidity, message, sizeof message);
-  Serial.print("any temperature valid=");
-  Serial.print(temperature.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" encode temperature=");
   Serial.print(cts::errorName(temperatureEncoded));
-  Serial.print(" humidity valid=");
-  Serial.print(humidity.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" humidity=");
   Serial.print(cts::errorName(humidityEncoded));
-  Serial.println(". Not sent. Timestamp is not a clock.");
+  Serial.println(". The line was not sent. Timestamp is not a clock.");
   delay(3000);
 }

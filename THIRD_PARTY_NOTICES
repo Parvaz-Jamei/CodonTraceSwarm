@@ -1,0 +1,47 @@
+Third-party notices
+===================
+
+The integer steps in src/cts/sensors/Bme280Comp.h (the temperature, pressure,
+and humidity arithmetic in bme280Compensate) were copied from
+Adafruit_BME280.cpp in the Adafruit BME280 Library, commit
+ef712e95147de926b4545e379f6296ad271529b5 (library version 2.3.0), which is
+BSD licensed.
+
+This copy is not a Bosch SensorAPI port. It is the Adafruit 2.3.0 integer
+sequence, not a datasheet certificate. Local edits around that copy: the
+12-bit dig_H4 and dig_H5 fields are assembled in unsigned arithmetic and
+sign-extended, and a calibration with dig_P1==0 does not run the pressure
+division and is not published as 0 Pa.
+
+This notice does not relicense the rest of the repository. The remainder
+stays under the license in the LICENSE file.
+
+BSD notice text from
+https://github.com/adafruit/Adafruit_BME280_Library/blob/ef712e95147de926b4545e379f6296ad271529b5/LICENSE
+
+Copyright (c) 2015, Limor Fried & Kevin Townsend for Adafruit Industries
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ * Neither the name of Adafruit Industries nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.

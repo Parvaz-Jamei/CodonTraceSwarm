@@ -49,8 +49,13 @@ void loop() {
   }
   cts::Sample temperature = cts::sht4xTemperature(chip, 0);
   cts::Sample humidity = cts::sht4xHumidity(chip, 0);
+  Serial.print("temperature=");
+  Serial.print(temperature.value);
+  Serial.print(" degC humidity=");
+  Serial.print(humidity.value);
+  Serial.print(" percent");
   if (!codecReady) {
-    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    Serial.println(". device define or begin failed. reading() not called. The line was not sent. Timestamp is not a clock.");
     delay(3000);
     return;
   }
@@ -58,14 +63,10 @@ void loop() {
       device.reading("temperature", temperature, message, sizeof message);
   cts::Error humidityEncoded =
       device.reading("humidity", humidity, message, sizeof message);
-  Serial.print("sht4x temperature valid=");
-  Serial.print(temperature.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" encode temperature=");
   Serial.print(cts::errorName(temperatureEncoded));
-  Serial.print(" humidity valid=");
-  Serial.print(humidity.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" humidity=");
   Serial.print(cts::errorName(humidityEncoded));
-  Serial.println(". Local JSON only. Not sent. Not a bench result. Timestamp is not a clock.");
+  Serial.println(". Local JSON only. The line was not sent. Not a bench result. Timestamp is not a clock.");
   delay(3000);
 }

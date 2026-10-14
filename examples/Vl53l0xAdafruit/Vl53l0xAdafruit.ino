@@ -39,16 +39,19 @@ void loop() {
     return;
   }
   cts::Sample sample = cts::vl53l0xMillimeters(chip, 0);
+  Serial.print("distance=");
+  Serial.print(sample.value);
+  Serial.print(" mm");
   if (!codecReady) {
-    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    Serial.println(". device define or begin failed. reading() not called. The line was not sent. Timestamp is not a clock.");
     delay(3000);
     return;
   }
   cts::Error encoded = device.reading("distance", sample, message, sizeof message);
-  Serial.print("vl53l0x valid=");
+  Serial.print(" valid=");
   Serial.print(sample.valid ? "true" : "false");
   Serial.print(" encode=");
   Serial.print(cts::errorName(encoded));
-  Serial.println(". Local JSON only. Not sent. Not a bench result. Timestamp is not a clock.");
+  Serial.println(". Local JSON only. The line was not sent. Not a bench result. Timestamp is not a clock.");
   delay(3000);
 }

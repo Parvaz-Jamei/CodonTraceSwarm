@@ -35,8 +35,9 @@ struct OrchHealth {
 // On each new connection generation a fresh Device hello is serialized before
 // any reading. repliesConfirmed / confirmReplyPublished means the publisher
 // reported a full write and QoS1 completion (transport ack), not that the
-// Genesis process accepted the payload. A disconnect during an in-flight
-// publish counts as one loss and does not count as delivery. Dropping a staged
+// Genesis process accepted the payload.
+// PUBACK is not Genesis application acceptance.
+// A disconnect during an in-flight publish counts as one loss and does not count as delivery. Dropping a staged
 // Hello or Reading retry counts as one loss, and does not count a second time
 // if aborting the in-flight publish already counted it. clockReady false never
 // starts a connect attempt.
@@ -45,6 +46,14 @@ struct OrchHealth {
 // Once Device::reading has serialized, those exact bytes are retried. The
 // caller is told Busy, not Failed, and readingsAllowed() is false while that
 // retry is queued. Failed means those bytes will not be published later.
+// messageStartedMs_ is the first attempt of that Hello or Reading. A retry
+// does not move it. Before restarting the retry, if
+// now - messageStartedMs_ >= 2 * attemptTimeoutMs, startKind is not called,
+// the retry is cleared, and exactly one loss is counted. A later poll does
+// not count a second loss for that dropped message. readingsAllowed() is then
+// true when hello is already complete. The same serialized hello is not started
+// again on this connection after that drop; a new connection can hello.
+// A pending command reply is not a reading and is not dropped by this budget.
 // accepted from the publisher is cumulative. A publish that makes no forward
 // progress for attemptTimeoutMs is cancelled once, counts one loss, and is
 // left inactive. A publish is also cancelled once, with one loss, when it has
@@ -90,11 +99,13 @@ private:
   OrchHealth health_;
   char wire_[TxBytes] = {};
   size_t size_ = 0, accepted_ = 0;
-  uint64_t generation_ = 0, replySeq_ = 0, progressMs_ = 0, publishStartedMs_ = 0;
+  uint64_t generation_ = 0, replySeq_ = 0, progressMs_ = 0, publishStartedMs_ = 0,
+           messageStartedMs_ = 0;
   OutKind kind_ = OutKind::None;
   OutKind retryKind_ = OutKind::None;
   bool online_ = false, helloSerialized_ = false, helloComplete_ = false,
-       publishActive_ = false, replyFault_ = false, retrySame_ = false;
+       publishActive_ = false, replyFault_ = false, retrySame_ = false,
+       helloAbandoned_ = false;
   static void bump(uint64_t &) noexcept;
   void clearOnline() noexcept;
   void abortPublish(bool loss) noexcept;

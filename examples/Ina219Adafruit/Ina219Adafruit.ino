@@ -49,8 +49,15 @@ void loop() {
   cts::Sample shunt = cts::ina219ShuntMv(chip, 0);
   cts::Sample bus = cts::ina219BusV(chip, 0);
   cts::Sample current = cts::ina219CurrentMa(chip, 0);
+  Serial.print("shunt=");
+  Serial.print(shunt.value);
+  Serial.print(" mV bus=");
+  Serial.print(bus.value);
+  Serial.print(" V current=");
+  Serial.print(current.value);
+  Serial.print(" mA");
   if (!codecReady) {
-    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    Serial.println(". device define or begin failed. reading() not called. The line was not sent. Timestamp is not a clock.");
     delay(3000);
     return;
   }
@@ -59,18 +66,12 @@ void loop() {
   cts::Error busEncoded = device.reading("bus", bus, message, sizeof message);
   cts::Error currentEncoded =
       device.reading("current", current, message, sizeof message);
-  Serial.print("ina219 shunt valid=");
-  Serial.print(shunt.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" encode shunt=");
   Serial.print(cts::errorName(shuntEncoded));
-  Serial.print(" bus valid=");
-  Serial.print(bus.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" bus=");
   Serial.print(cts::errorName(busEncoded));
-  Serial.print(" current valid=");
-  Serial.print(current.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" current=");
   Serial.print(cts::errorName(currentEncoded));
-  Serial.println(". Local JSON only. Not sent. Not a bench result. Timestamp is not a clock.");
+  Serial.println(". Local JSON only. The line was not sent. Not a bench result. Timestamp is not a clock.");
   delay(3000);
 }

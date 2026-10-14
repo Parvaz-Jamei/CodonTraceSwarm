@@ -607,6 +607,41 @@ int main() {
   }
   {
     Env env;
+    env.link.done = true;
+    CHECK(env.orch.poll(0, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.helloComplete());
+    CHECK(env.orch.readingsAllowed());
+    env.pub.mode = Pub::Mode::Fail;
+    CHECK(env.orch.publishReading("s", sample, scratch, sizeof(scratch)) ==
+          OrchCode::Busy);
+    CHECK(!env.orch.publishActive());
+    CHECK(!env.orch.readingsAllowed());
+    CHECK(env.orch.losses() == 0);
+    for (uint64_t t = 1000; t < 20000; t += 1000) {
+      CHECK(env.orch.poll(t, true, 0) == OrchCode::Ok);
+      CHECK(env.orch.losses() == 0);
+      CHECK(!env.orch.readingsAllowed());
+      CHECK(env.orch.helloComplete());
+    }
+    const int stepsAtBudget = env.pub.steps;
+    CHECK(env.orch.poll(20000, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.readingsAllowed());
+    CHECK(env.orch.helloComplete());
+    CHECK(env.pub.steps == stepsAtBudget);
+    CHECK(env.orch.poll(21000, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.poll(22000, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.poll(30000, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.poll(100000, true, 0) == OrchCode::Ok);
+    CHECK(env.orch.losses() == 1);
+    CHECK(env.orch.readingsAllowed());
+    CHECK(env.pub.steps == stepsAtBudget);
+    CHECK(env.orch.health().readings == 0);
+    std::cout << "probe repeated_failure losses=" << env.orch.losses()
+              << " allowed=" << env.orch.readingsAllowed() << "\n";
+  }
+  {
+    Env env;
     CHECK(env.orch.poll(100, true, 0) == OrchCode::Ok);
     CHECK(env.policy.state() != LinkState::Fault);
     const int starts = env.link.starts;

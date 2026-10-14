@@ -57,8 +57,15 @@ void loop() {
   cts::Sample temperature = reading.temperature;
   cts::Sample pressure = reading.pressure;
   cts::Sample humidity = reading.humidity;
+  Serial.print("temperature=");
+  Serial.print(temperature.value);
+  Serial.print(" degC pressure=");
+  Serial.print(pressure.value);
+  Serial.print(" Pa humidity=");
+  Serial.print(humidity.value);
+  Serial.print(" percent");
   if (!codecReady) {
-    Serial.println("device define or begin failed. reading() not called. Sample skipped. Timestamp is not a clock.");
+    Serial.println(". device define or begin failed. reading() not called. The line was not sent. Timestamp is not a clock.");
     delay(3000);
     return;
   }
@@ -68,18 +75,12 @@ void loop() {
       device.reading("pressure", pressure, message, sizeof message);
   cts::Error humidityEncoded =
       device.reading("humidity", humidity, message, sizeof message);
-  Serial.print("bme280 temperature valid=");
-  Serial.print(temperature.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" encode temperature=");
   Serial.print(cts::errorName(temperatureEncoded));
-  Serial.print(" pressure valid=");
-  Serial.print(pressure.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" pressure=");
   Serial.print(cts::errorName(pressureEncoded));
-  Serial.print(" humidity valid=");
-  Serial.print(humidity.valid ? "true" : "false");
-  Serial.print(" encode=");
+  Serial.print(" humidity=");
   Serial.print(cts::errorName(humidityEncoded));
-  Serial.println(". Local JSON only. Not sent. Timestamp is not a clock.");
+  Serial.println(". Local JSON only. The line was not sent. Timestamp is not a clock.");
   delay(3000);
 }

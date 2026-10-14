@@ -110,15 +110,19 @@ void loop() {
             FDC1004Measurement::M1, picofarads);
         // 0 is not a clock and is not written as UTC.
         cts::Sample cap = cts::fdcxScalarFromStatus(readStatus, picofarads, 0);
+        Serial.print("capacitance=");
+        Serial.print(cap.value);
+        Serial.print(" pF");
         if (!codecReady) {
-          Serial.println("device define or begin failed. reading() not called. Sample skipped.");
+          Serial.println(". device define or begin failed. reading() not called. The line was not sent.");
         } else {
           cts::Error encoded =
               device.reading("capacitance", cap, message, sizeof message);
-          Serial.print("fdc1004 valid=");
+          Serial.print(" valid=");
           Serial.print(cap.valid ? "true" : "false");
           Serial.print(" encode=");
-          Serial.println(cts::errorName(encoded));
+          Serial.print(cts::errorName(encoded));
+          Serial.println(". The line was not sent.");
         }
       }
     }
@@ -134,18 +138,22 @@ void loop() {
     } else {
       cts::Sample hz =
           cts::fdcxFdc2214Hertz(fdc2214, FDC2x1xChannel::CH0, kFclkHz, 0);
+      Serial.print("frequency=");
+      Serial.print(hz.value);
+      Serial.print(" Hz");
       if (!codecReady) {
-        Serial.println("device define or begin failed. reading() not called. Sample skipped.");
+        Serial.println(". device define or begin failed. reading() not called. The line was not sent.");
       } else {
         cts::Error encoded =
             device.reading("frequency", hz, message, sizeof message);
-        Serial.print("fdc2214 valid=");
+        Serial.print(" valid=");
         Serial.print(hz.valid ? "true" : "false");
         Serial.print(" encode=");
-        Serial.println(cts::errorName(encoded));
+        Serial.print(cts::errorName(encoded));
+        Serial.println(". The line was not sent.");
       }
     }
   }
-  Serial.println("Timestamp is not a clock. Not sent. Not flashed. Constants were not measured.");
+  Serial.println("Timestamp is not a clock. The line was not sent. Not flashed. Constants were not measured.");
   delay(3000);
 }
