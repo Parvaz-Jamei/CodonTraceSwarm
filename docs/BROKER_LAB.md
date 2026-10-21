@@ -3,6 +3,8 @@
 This exercises real TCP/TLS sockets and a real MQTT broker with two compiled C++
 CodonTraceSwarm nodes and the actual pinned Genesis coordinator. It is not an
 ESP32 adapter, physical sensor experiment or scientific novelty result.
+All lab clients connect as MQTT 3.1.1 (`mqtt.MQTTv311` in `tools/broker_lab/run.py`);
+MQTT 5 is not exercised.
 
 ## Reproduce
 
