@@ -10,7 +10,9 @@ import subprocess
 import sys
 import types
 
-PIN = '74c7b3f15c2d093da03e392094814d63a4997c2c'
+import os
+# CTS_HOST_REV: Genesis revision under test (default: the pinned contract host).
+PIN = os.environ.get('CTS_HOST_REV', '74c7b3f15c2d093da03e392094814d63a4997c2c')
 p = argparse.ArgumentParser()
 p.add_argument('host', type=Path)
 p.add_argument('messages', type=Path)
