@@ -23,7 +23,6 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: arduino/arduino-lint-action@v3
         with:
-          path: .
           compliance: strict
           library-manager: update
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -63,10 +62,13 @@ jobs:
             | BINDIR="$RUNNER_TEMP/arduino-bin" sh -s "$ARDUINO_CLI_VERSION"
           export PATH="$RUNNER_TEMP/arduino-bin:$PATH"
           arduino-cli version
-          urls=()
-          if [[ -n "$INDEX" ]]; then urls=(--additional-urls "$INDEX"); fi
-          arduino-cli core update-index "${urls[@]}"
-          arduino-cli core install "$CORE" "${urls[@]}"
+          # macOS ships bash 3.2, where "${empty[@]}" trips set -u; use an
+          # environment variable that arduino-cli reads instead of an array.
+          if [[ -n "$INDEX" ]]; then
+            export ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS="$INDEX"
+          fi
+          arduino-cli core update-index
+          arduino-cli core install "$CORE"
           arduino-cli lib update-index
           eval arduino-cli lib install $SENSOR_LIBS
           rm -rf "$RUNNER_TEMP/sketches"

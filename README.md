@@ -121,8 +121,10 @@ Wrappers call the sensor library named in the header (BME280 uses checked regist
 
 | Target | How it is recorded | Status |
 |---|---|---|
-| **Arduino Nano 33 BLE** | FQBN `arduino:mbed_nano:nano33ble` | Compile-tested in CI. Not flashed. Not bench-tested. |
-| **esp32, rp2040, mbed_rp2040, mbed_portenta, mbed_giga, mbed_opta, renesas_portenta** | `architectures` in `library.properties` | Listed only. Not bench-tested and not compile-tested in CI. |
+| **Arduino Nano 33 BLE** | FQBN `arduino:mbed_nano:nano33ble` (Linux, Windows, macOS hosts) | Compile-tested in CI. Not flashed. Not bench-tested. |
+| **ESP32** | FQBN `esp32:esp32:esp32` (Espressif core 3.3.12) | Compile-tested in CI. Not flashed. Not bench-tested. |
+| **Raspberry Pi Pico** | FQBNs `rp2040:rp2040:rpipico` (Earle Philhower core) and `arduino:mbed_rp2040:pico` | Compile-tested in CI. Not flashed. Not bench-tested. |
+| **Portenta H7, GIGA R1, Opta, Portenta C33** | FQBNs `arduino:mbed_portenta:envie_m7`, `arduino:mbed_giga:giga`, `arduino:mbed_opta:opta`, `arduino:renesas_portenta:portenta_c33` | Compile-tested in CI. Not flashed. Not bench-tested. |
 | **AVR, megaAVR, SAMD21, UNO R4, ESP8266, Due** | Excluded by `library.properties` | Not supported. |
 
 ---
@@ -150,7 +152,7 @@ lib_deps =
     https://github.com/Parvaz-Jamei/CodonTraceSwarm.git#0.12.11
 ```
 
-The git tag is `0.12.11`, not `v0.12.11`. The `esp32dev` environment above only shows how to name the dependency. ESP32 is listed in `library.properties` and was not compile-tested in CI.
+The git tag is `0.12.11`, not `v0.12.11`. `library.json` is the PlatformIO manifest. CI compiles the examples for `esp32:esp32:esp32` with arduino-cli; the `esp32dev` PlatformIO environment above is not built in CI. Host-native PlatformIO + Unity tests run with `pio test -e native` (ASan/UBSan, see `platformio.ini`).
 
 ---
 
