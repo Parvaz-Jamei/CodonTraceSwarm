@@ -17,20 +17,26 @@ jobs:
       - name: Sanitized core and real-host checks
         run: python3 tools/check.py --sanitize --host reference-host
   genesis-main:
-    # Loopback contract against the current Genesis main, not only the pin:
-    # C++ (ASan/UBSan) encodes, Genesis main's codontrace.swarm decodes and
-    # ingests, and host-generated commands are decoded by C++.
-    name: loopback contract vs Genesis main
+    # Loopback contract against a pinned recent Genesis main commit (a928ee4,
+    # main tip on 2026-10-21): C++ (ASan/UBSan) encodes, that commit's
+    # codontrace.swarm decodes and ingests, and host-generated commands are
+    # decoded by C++. Bump GENESIS_REV deliberately when Genesis main moves.
+    name: loopback contract vs Genesis a928ee4
     runs-on: ubuntu-24.04
+    env:
+      GENESIS_REV: a928ee4ebeff20dbda721937cfad8046de435cba
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Fetch Genesis main
-        run: git clone --depth 1 --branch main https://github.com/Parvaz-Jamei/codontrace-genesis.git genesis-main
-      - name: Contract checks against main
+      - name: Fetch Genesis at the pinned main commit
         run: |
-          rev="$(git -C genesis-main rev-parse HEAD)"
-          echo "Genesis main under test: $rev" | tee -a "$GITHUB_STEP_SUMMARY"
-          python3 tools/check.py --sanitize --build-dir build-main --host genesis-main --host-rev "$rev"
+          git init genesis-main
+          git -C genesis-main remote add origin https://github.com/Parvaz-Jamei/codontrace-genesis.git
+          git -C genesis-main fetch --depth 1 origin "$GENESIS_REV"
+          git -C genesis-main checkout --detach FETCH_HEAD
+      - name: Contract checks against the pinned commit
+        run: |
+          echo "Genesis under test: $GENESIS_REV" | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 tools/check.py --sanitize --build-dir build-main --host genesis-main --host-rev "$GENESIS_REV"
   platformio-native:
     name: PlatformIO native + Unity (ASan/UBSan)
     runs-on: ubuntu-24.04

@@ -41,10 +41,10 @@ jobs:
           - { os: ubuntu-latest,  fqbn: "arduino:mbed_portenta:envie_m7",      core: "arduino:mbed_portenta@4.6.0" }
           - { os: ubuntu-latest,  fqbn: "arduino:mbed_giga:giga",              core: "arduino:mbed_giga@4.6.0" }
           - { os: ubuntu-latest,  fqbn: "arduino:mbed_opta:opta",              core: "arduino:mbed_opta@4.6.0" }
-          - { os: ubuntu-latest,  fqbn: "arduino:renesas_portenta:portenta_c33", core: "arduino:renesas_portenta" }
+          - { os: ubuntu-latest,  fqbn: "arduino:renesas_portenta:portenta_c33", core: "arduino:renesas_portenta@1.6.0" }
           - { os: ubuntu-latest,  fqbn: "esp32:esp32:esp32",                   core: "esp32:esp32@3.3.12",
               index: "https://espressif.github.io/arduino-esp32/package_esp32_index.json" }
-          - { os: ubuntu-latest,  fqbn: "rp2040:rp2040:rpipico",               core: "rp2040:rp2040",
+          - { os: ubuntu-latest,  fqbn: "rp2040:rp2040:rpipico",               core: "rp2040:rp2040@6.3.0",
               index: "https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json" }
     runs-on: ${{ matrix.os }}
     steps:
