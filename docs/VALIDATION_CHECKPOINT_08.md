@@ -5,7 +5,7 @@
   rejection and 10,000 increments spanning multiple wraps.
 - PASS: all pinned-host integrations in evidence/native_and_host.log.
 - NOT_RUN: Arduino compilation: arduino-cli unavailable; the board runner returned
-  code 2 with a NOT_RUN report, preserved in evidence/arduino_compile_not_run.json.
+  code 2 with a NOT_RUN report, recorded at the time in evidence/arduino_compile_not_run.json. That file was removed on 2026-10-22: it named arduino:avr:uno, an excluded board, and is superseded by the CI compile matrix (evidence/arduino_compile_matrix.json, Actions run 39674582185).
 - NOT_RUN: physical boards, sensor drivers, production network adapters, CMake frontend.
 - PENDING: independent CP07/CP08 review.
 
