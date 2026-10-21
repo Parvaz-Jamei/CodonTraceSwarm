@@ -7,6 +7,7 @@ import sys
 
 p = argparse.ArgumentParser()
 p.add_argument('--host', type=Path, help='Pinned original Genesis checkout')
+p.add_argument('--host-rev', help='Expected git revision of --host (default: pinned 74c7b3f)')
 p.add_argument('--sanitize', action='store_true')
 p.add_argument('--build-dir', type=Path, default=Path('build-native'))
 a = p.parse_args()
@@ -42,6 +43,8 @@ subprocess.run([str(build/'cts_fdc2214')], check=True)
 subprocess.run([str(build/'cts_orchestrator')], check=True)
 subprocess.run([str(build/'cts_sensor_sample')], check=True)
 subprocess.run([str(build/'cts_bme280_comp')], check=True)
+if a.host and a.host_rev:
+    os.environ['CTS_HOST_REV'] = a.host_rev
 if a.host:
     subprocess.run([sys.executable, str(root/'tools/verify_host.py'), str(a.host.resolve()), str(messages)], check=True)
     subprocess.run([sys.executable, str(root/'tools/verify_commands.py'), str(a.host.resolve()), str(messages), str(build/'cts_command_probe'), '--evidence', str(build/'commands.json')], check=True)

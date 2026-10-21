@@ -2,61 +2,89 @@ name: Arduino on Windows, Linux, and macOS
 on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
+env:
+  ARDUINO_CLI_VERSION: "1.5.1"
+  SENSOR_LIBS: >-
+    "Adafruit BME280 Library@2.3.0"
+    "Adafruit SHT4x Library@1.0.5"
+    "Adafruit INA219@1.2.3"
+    "Adafruit_VL53L0X@1.2.5"
+    "HX711 Arduino Library@0.7.5"
+    "ProtoCentral FDC1004 Capacitive Sensor Library@2.0.1"
+    "FDCxCapSense@0.6.13"
 jobs:
   lint:
-    name: lint (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    # arduino-lint checks files only, so one OS is enough. The token avoids
+    # unauthenticated GitHub API calls (main run 38631847096 failed lint on
+    # macOS with an HTTP 500 from that call, not from a lint rule).
+    name: lint
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: arduino/arduino-lint-action@v2
+      - uses: arduino/arduino-lint-action@v3
         with:
           compliance: strict
           library-manager: update
-          project-path: .
+          token: ${{ secrets.GITHUB_TOKEN }}
   compile:
-    # OS matrix only. The only FQBN is arduino:mbed_nano:nano33ble, not three board families.
-    name: compile (${{ matrix.os }})
+    # One FQBN for every architecture in library.properties, plus the
+    # Nano 33 BLE on three host OSes. Compile only, never flashed.
+    name: compile ${{ matrix.fqbn }} (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - { os: ubuntu-latest,  fqbn: "arduino:mbed_nano:nano33ble",         core: "arduino:mbed_nano@4.6.0" }
+          - { os: windows-latest, fqbn: "arduino:mbed_nano:nano33ble",         core: "arduino:mbed_nano@4.6.0" }
+          - { os: macos-latest,   fqbn: "arduino:mbed_nano:nano33ble",         core: "arduino:mbed_nano@4.6.0" }
+          - { os: ubuntu-latest,  fqbn: "arduino:mbed_rp2040:pico",            core: "arduino:mbed_rp2040@4.6.0" }
+          - { os: ubuntu-latest,  fqbn: "arduino:mbed_portenta:envie_m7",      core: "arduino:mbed_portenta@4.6.0" }
+          - { os: ubuntu-latest,  fqbn: "arduino:mbed_giga:giga",              core: "arduino:mbed_giga@4.6.0" }
+          - { os: ubuntu-latest,  fqbn: "arduino:mbed_opta:opta",              core: "arduino:mbed_opta@4.6.0" }
+          - { os: ubuntu-latest,  fqbn: "arduino:renesas_portenta:portenta_c33", core: "arduino:renesas_portenta@1.6.0" }
+          - { os: ubuntu-latest,  fqbn: "esp32:esp32:esp32",                   core: "esp32:esp32@3.3.12",
+              index: "https://espressif.github.io/arduino-esp32/package_esp32_index.json" }
+          - { os: ubuntu-latest,  fqbn: "rp2040:rp2040:rpipico",               core: "rp2040:rp2040@6.3.0",
+              index: "https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json" }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Compile examples for Nano 33 BLE
+      - name: Compile every example
         shell: bash
+        env:
+          FQBN: ${{ matrix.fqbn }}
+          CORE: ${{ matrix.core }}
+          INDEX: ${{ matrix.index }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/arduino-bin"
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR="$RUNNER_TEMP/arduino-bin" sh
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh \
+            | BINDIR="$RUNNER_TEMP/arduino-bin" sh -s "$ARDUINO_CLI_VERSION"
           export PATH="$RUNNER_TEMP/arduino-bin:$PATH"
           arduino-cli version
+          # macOS ships bash 3.2, where "${empty[@]}" trips set -u; use an
+          # environment variable that arduino-cli reads instead of an array.
+          if [[ -n "$INDEX" ]]; then
+            export ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS="$INDEX"
+          fi
           arduino-cli core update-index
-          arduino-cli core install arduino:mbed_nano
+          arduino-cli core install "$CORE"
           arduino-cli lib update-index
-          arduino-cli lib install \
-            "Adafruit BME280 Library@2.3.0" \
-            "Adafruit SHT4x Library@1.0.5" \
-            "Adafruit INA219@1.2.3" \
-            "Adafruit_VL53L0X@1.2.5" \
-            "HX711 Arduino Library@0.7.5" \
-            "ProtoCentral FDC1004 Capacitive Sensor Library@2.0.1" \
-            "FDCxCapSense@0.6.13"
+          eval arduino-cli lib install $SENSOR_LIBS
           rm -rf "$RUNNER_TEMP/sketches"
           cp -a examples "$RUNNER_TEMP/sketches"
           compiled=0
           for sketch in "$RUNNER_TEMP/sketches"/*; do
             if [[ -d "$sketch" ]]; then
               compiled=$((compiled + 1))
-              arduino-cli compile --fqbn arduino:mbed_nano:nano33ble \
+              echo "::group::$FQBN $(basename "$sketch")"
+              arduino-cli compile --fqbn "$FQBN" --warnings default \
                 --library "$GITHUB_WORKSPACE" "$sketch"
+              echo "::endgroup::"
             fi
           done
           if [[ "$compiled" -lt 1 ]]; then
             echo "no example sketches found" >&2
             exit 1
           fi
+          echo "compiled $compiled examples for $FQBN"

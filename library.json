@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "CodonTraceSwarm",
+  "version": "0.12.11",
+  "description": "C++11 codec for CodonTrace Genesis swarm messages (genesis_swarm_v2). Optional header-only adapters call a sensor's own library; install that library yourself to use its header. No Wi-Fi or MQTT stack is bundled. Compile-tested in CI, not flashed.",
+  "keywords": [
+    "codontrace",
+    "genesis",
+    "swarm",
+    "telemetry",
+    "json",
+    "codec",
+    "sensor"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Parvaz-Jamei/CodonTraceSwarm.git"
+  },
+  "authors": [
+    {
+      "name": "Parvaz Jamei",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Parvaz-Jamei/CodonTraceSwarm",
+  "frameworks": "arduino",
+  "platforms": [
+    "espressif32",
+    "raspberrypi",
+    "nordicnrf52",
+    "ststm32",
+    "renesas-ra"
+  ],
+  "headers": "CodonTraceSwarm.h",
+  "build": {
+    "srcDir": "src",
+    "includeDir": "src"
+  },
+  "export": {
+    "exclude": [
+      ".github",
+      "evidence",
+      "notes",
+      "planning",
+      "tests",
+      "tools",
+      "docs",
+      "platformio.ini",
+      "build*"
+    ]
+  }
+}
