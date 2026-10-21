@@ -3,14 +3,75 @@
   "workflow": ".github/workflows/arduino.yml",
   "arduino_cli": "1.5.1",
   "targets": [
-    {"architecture": "mbed_nano", "fqbn": "arduino:mbed_nano:nano33ble", "core": "arduino:mbed_nano@4.6.0", "host_os": ["ubuntu-latest", "windows-latest", "macos-latest"]},
-    {"architecture": "mbed_rp2040", "fqbn": "arduino:mbed_rp2040:pico", "core": "arduino:mbed_rp2040@4.6.0", "host_os": ["ubuntu-latest"]},
-    {"architecture": "mbed_portenta", "fqbn": "arduino:mbed_portenta:envie_m7", "core": "arduino:mbed_portenta@4.6.0", "host_os": ["ubuntu-latest"]},
-    {"architecture": "mbed_giga", "fqbn": "arduino:mbed_giga:giga", "core": "arduino:mbed_giga@4.6.0", "host_os": ["ubuntu-latest"]},
-    {"architecture": "mbed_opta", "fqbn": "arduino:mbed_opta:opta", "core": "arduino:mbed_opta@4.6.0", "host_os": ["ubuntu-latest"]},
-    {"architecture": "renesas_portenta", "fqbn": "arduino:renesas_portenta:portenta_c33", "core": "arduino:renesas_portenta@1.6.0", "host_os": ["ubuntu-latest"]},
-    {"architecture": "esp32", "fqbn": "esp32:esp32:esp32", "core": "esp32:esp32@3.3.12", "host_os": ["ubuntu-latest"]},
-    {"architecture": "rp2040", "fqbn": "rp2040:rp2040:rpipico", "core": "rp2040:rp2040@6.3.0", "host_os": ["ubuntu-latest"]}
+    {
+      "architecture": "mbed_nano",
+      "fqbn": "arduino:mbed_nano:nano33ble",
+      "core": "arduino:mbed_nano@4.6.0",
+      "host_os": [
+        "ubuntu-latest",
+        "windows-latest",
+        "macos-latest"
+      ]
+    },
+    {
+      "architecture": "mbed_rp2040",
+      "fqbn": "arduino:mbed_rp2040:pico",
+      "core": "arduino:mbed_rp2040@4.6.0",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "architecture": "mbed_portenta",
+      "fqbn": "arduino:mbed_portenta:envie_m7",
+      "core": "arduino:mbed_portenta@4.6.0",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "architecture": "mbed_giga",
+      "fqbn": "arduino:mbed_giga:giga",
+      "core": "arduino:mbed_giga@4.6.0",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "architecture": "mbed_opta",
+      "fqbn": "arduino:mbed_opta:opta",
+      "core": "arduino:mbed_opta@4.6.0",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "architecture": "renesas_portenta",
+      "fqbn": "arduino:renesas_portenta:portenta_c33",
+      "core": "arduino:renesas_portenta@1.6.0",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "architecture": "esp32",
+      "fqbn": "esp32:esp32:esp32",
+      "core": "esp32:esp32@3.3.12",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "architecture": "rp2040",
+      "fqbn": "rp2040:rp2040:rpipico",
+      "core": "rp2040:rp2040@6.3.0",
+      "host_os": [
+        "ubuntu-latest"
+      ]
+    }
   ],
-  "result": "See the Actions run for the commit; this file records the matrix, not a pass."
+  "result": "PASS on commit 8452408ec359f30b17484e0c5ebd74ca5ab58aca: Actions run 39674582185 (https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/runs/39674582185), every job succeeded, every example compiled for every FQBN above. Compile only: not flashed, no hardware tested. Later commits: see the Actions run for that commit.",
+  "run_id": 39674582185,
+  "commit": "8452408ec359f30b17484e0c5ebd74ca5ab58aca",
+  "replaces": "evidence/arduino_compile_not_run.json (a NOT_RUN record for arduino:avr:uno, a board the library excludes), removed 2026-10-22."
 }

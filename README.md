@@ -105,7 +105,7 @@ The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. 
 - **`ArduinoMqttAdapter`**: Optional synchronous MQTT helper. It is not the nonblocking reconnect seam. No broker round-trip is claimed done.
 
 ### 5. Sensor Library Glue
-Wrappers call the sensor library named in the header (BME280 uses checked register reads instead of the Adafruit getters). They were compile-tested only for FQBN `arduino:mbed_nano:nano33ble`. They were not flashed and not bench-tested.
+Wrappers call the sensor library named in the header (BME280 uses checked register reads instead of the Adafruit getters). They are compile-tested in CI for every FQBN in the table below (see `evidence/arduino_compile_matrix.json`). They were not flashed and not bench-tested.
 - **Bosch BME280** (checked calibration and measurement bytes)
 - **Sensirion SHT4x**
 - **TI INA219**
@@ -499,8 +499,8 @@ ctest --test-dir build --output-on-failure
 | **C++11 codec and JSON** | Native tests | `tools/check.py` on the host. Not a board soak. |
 | **Command history and FIFO** | Native tests | 16-entry history returns `HistoryFull` when full. Not a broker round-trip. This library does not authenticate commands. |
 | **Reconnect orchestrator** | Native tests | Synthetic publisher and connect client. Not a TLS MQTT crash test. |
-| **Sensor wrappers** | Compile-tested on one FQBN | `arduino:mbed_nano:nano33ble` only. Not flashed. Not bench-tested. |
-| **Other `library.properties` architectures** | Listed | Not bench-tested and not compile-tested in CI. |
+| **Sensor wrappers** | Compile-tested in CI | Every FQBN in `evidence/arduino_compile_matrix.json`. Not flashed. Not bench-tested. |
+| **Other `library.properties` architectures** | Compile-tested in CI | One FQBN each (`evidence/arduino_compile_matrix.json`). Not flashed. Not bench-tested. |
 | **N06 broker round-trip** | Not done | Sensor sketches do not deliver a host journal entry. |
 | **N10 reply recovery against lost Genesis state** | Not done | PUBACK is not Genesis application acceptance. |
 

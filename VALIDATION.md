@@ -34,7 +34,8 @@ Attack coverage in the new binaries: scheduler burst does not catch up; SHT4x pr
 | ESP32 flash | NOT_RUN |
 | Overnight soak | NOT_RUN |
 | Scientific RQ | NOT_RUN |
-| Compiled on board | NOT_RUN |
+| Compiled for every listed architecture | PASS (compile only; CI compile matrix (evidence/arduino_compile_matrix.json, Actions run 39674582185)) |
+| Run on a physical board | NOT_RUN |
 | Engine-integrated drivers | NOT_RUN |
 
 `architectures` is not tested board support. Boards under 128 KB SRAM are excluded. `ArduinoMqttAdapter` was not turned into the nonblocking seam and may still block. Mock sensor numbers are SYNTHETIC. No PASS is claimed for bench, flash, soak, or RQ.

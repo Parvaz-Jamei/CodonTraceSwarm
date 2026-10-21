@@ -1,10 +1,9 @@
 # Arduino portability — version 0.12.11
 
 The current profile is not for every Arduino board. `library.properties` lists only
-architectures whose boards have enough SRAM for this build. That list is still
-**not** a compile, flash, or bench result. Eleven examples print a local
-Serial line and were compiled for FQBN `arduino:mbed_nano:nano33ble` only.
-That workflow matrix is three operating systems, not three board families.
+architectures whose boards have enough SRAM for this build. That list is
+**not** a flash or bench result. Eleven examples print a local Serial line and
+are compiled in CI for one FQBN per listed architecture (table below).
 Local sketches do not connect or read a chip. Nothing was flashed.
 
 ## Why boards were removed
@@ -36,29 +35,33 @@ SAMD51 boards have enough RAM, but they share the `samd` id with SAMD21, so the
 whole architecture is excluded. STM32 parts with 128 KB or more are excluded for
 the same reason: one id covers the 20 KB parts.
 
-## Still eligible, not tested
+## Eligible, compile-tested in CI, not flashed
+
+Every example is compiled for one FQBN per architecture on each push
+(`.github/workflows/arduino.yml`, recorded in `evidence/arduino_compile_matrix.json`).
+Only the FQBN named here was compiled; other boards of the same family were not.
 
 | architectures id | Examples | SRAM | Verified |
 |---|---|---|---|
-| esp32 | ESP32, S2, S3, C3, C6 | 272 KB and up | NOT_RUN |
-| rp2040 | Pico, Pico 2 on the Earle core | 264 KB and up | NOT_RUN |
-| mbed_nano | Nano 33 BLE | 256 KB | Compiled with arduino-cli 1.5.1 and mbed_nano 4.6.0, not flashed |
-| mbed_rp2040 | Nano RP2040 Connect | 264 KB | NOT_RUN |
-| mbed_portenta | Portenta H7 | megabytes | NOT_RUN |
-| mbed_giga | Giga R1 | megabytes | NOT_RUN |
-| mbed_opta | Opta | megabytes | NOT_RUN |
-| renesas_portenta | Portenta C33 | 512 KB | NOT_RUN |
+| esp32 | ESP32, S2, S3, C3, C6 | 272 KB and up | `esp32:esp32:esp32` on esp32 core 3.3.12 compiled (arduino-cli 1.5.1, run 39674582185), not flashed. S2/S3/C3/C6 not compiled |
+| rp2040 | Pico, Pico 2 on the Earle core | 264 KB and up | `rp2040:rp2040:rpipico` on rp2040 core 6.3.0 compiled (arduino-cli 1.5.1, run 39674582185), not flashed. Pico 2 not compiled |
+| mbed_nano | Nano 33 BLE | 256 KB | `arduino:mbed_nano:nano33ble` on mbed_nano 4.6.0 (Linux, Windows, macOS hosts) compiled (arduino-cli 1.5.1, run 39674582185), not flashed |
+| mbed_rp2040 | Nano RP2040 Connect | 264 KB | `arduino:mbed_rp2040:pico` on mbed_rp2040 4.6.0 compiled (arduino-cli 1.5.1, run 39674582185), not flashed |
+| mbed_portenta | Portenta H7 | megabytes | `arduino:mbed_portenta:envie_m7` on mbed_portenta 4.6.0 compiled (arduino-cli 1.5.1, run 39674582185), not flashed |
+| mbed_giga | Giga R1 | megabytes | `arduino:mbed_giga:giga` on mbed_giga 4.6.0 compiled (arduino-cli 1.5.1, run 39674582185), not flashed |
+| mbed_opta | Opta | megabytes | `arduino:mbed_opta:opta` on mbed_opta 4.6.0 compiled (arduino-cli 1.5.1, run 39674582185), not flashed |
+| renesas_portenta | Portenta C33 | 512 KB | `arduino:renesas_portenta:portenta_c33` on renesas_portenta 1.6.0 compiled (arduino-cli 1.5.1, run 39674582185), not flashed |
 
 Eligibility is not Wi-Fi or TLS. Optional sensor headers call another library; they were compiled here and not flashed. `CoreSmoke` still constructs a
 full `Device` and prints the local hello. On Nano 33 BLE that sketch linked at
 91,288 bytes of flash and 87,616 bytes of RAM. `CheckInclude` linked at 85,392
 flash and 44,552 RAM. `PortableClock` linked at 85,744 flash and 44,576 RAM.
 Nothing was uploaded. The same source is what Arduino IDE builds on Windows,
-Linux, and macOS; only Nano 33 BLE was compiled in this environment.
+Linux, and macOS; the size figures above are from Nano 33 BLE only.
 
 Sensor sketches `Bme280Adafruit`, `Sht4xAdafruit`, `Ina219Adafruit`, `Vl53l0xAdafruit`,
 `Hx711Bogde`, `Fdc1004Protocentral`, `FdcxCapSense`, and `AnySensorLibrary` also
-compiled for that board after those vendor libraries were installed. That compile
+compile in CI for every FQBN below after those vendor libraries are installed. That compile
 does not mean a chip answered.
 
 ## Compile an eligible board
