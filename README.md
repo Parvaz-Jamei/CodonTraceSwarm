@@ -1,12 +1,14 @@
 # CodonTraceSwarm
 
 <p align="center">
+  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/arduino.yml"><img alt="Arduino compile CI" src="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/arduino.yml/badge.svg"></a>
+  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/native.yml"><img alt="Native, Unity and Genesis contract CI" src="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/native.yml/badge.svg"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm"><img alt="Arduino Library Spec" src="https://img.shields.io/badge/Arduino%20Library-v1.5-00979C.svg?logo=arduino&logoColor=white"></a>
   <a href="https://en.cppreference.com/w/cpp/11"><img alt="C++ Standard" src="https://img.shields.io/badge/C%2B%2B-11%20Standard-00599C.svg?logo=c%2B%2B&logoColor=white"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.11-blue.svg"></a>
   <img alt="128 KB SRAM is listed, not a measured TLS budget" src="https://img.shields.io/badge/SRAM-128%20KB%20listed%2C%20not%20measured%20TLS-orange.svg">
-  <img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg">
+  <a href="tests/pio/test_no_heap/test_main.cpp"><img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg"></a>
 </p>
 
 <p align="center">
@@ -94,6 +96,12 @@ Supports rich data types out of the box without string coercion:
 
 ### 2. Zero Unbounded Allocations
 The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. Transmission buffers are bounded (`TxBytes = 8192`), eliminating runtime memory spikes and out-of-memory panics.
+The zero-heap hot-path claim is tested, not only stated: `tests/pio/test_no_heap` replaces
+global `operator new` with a counter and asserts zero allocations across hello, 100 readings,
+and 5 commands through `NetworkInbox` push/poll and `CommandSession` submit/poll/confirm.
+`tools/check_no_heap.py` compiles every `src/` object and fails if any references `malloc`,
+`calloc`, `realloc`, `strdup` or `operator new`. Header-only sensor and MQTT adapters are not
+covered by the symbol check, and plain `malloc` calls are covered only by that symbol check.
 
 ### 3. Bidirectional Command Engine
 - Bounded 8-command FIFO. `runOne` calls a `CommandExecutor`.
@@ -102,7 +110,7 @@ The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. 
 
 ### 4. Resilient Network Orchestration
 - **`ReconnectOrchestrator`**: Hello before reading, and loss accounting for a publish that fails or stalls. It does not open a socket. A Hello or Reading retry is bounded by `2 * attemptTimeoutMs` from the first attempt of that message. A pending command reply is not dropped by that budget. PUBACK is not Genesis application acceptance.
-- **`ArduinoMqttAdapter`**: Optional synchronous MQTT helper. It is not the nonblocking reconnect seam. No broker round-trip is claimed done.
+- **`ArduinoMqttAdapter`**: Optional synchronous MQTT 3.1.1 helper for ArduinoMqttClient (MQTT 5 is not implemented; see `docs/ARDUINO_MQTT_ADAPTER.md`). It is not the nonblocking reconnect seam. No broker round-trip is claimed done.
 
 ### 5. Sensor Library Glue
 Wrappers call the sensor library named in the header (BME280 uses checked register reads instead of the Adafruit getters). They are compile-tested in CI for every FQBN in the table below (see `evidence/arduino_compile_matrix.json`). They were not flashed and not bench-tested.

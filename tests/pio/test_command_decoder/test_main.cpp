@@ -50,6 +50,17 @@ static void test_expired_rejected() {
   const std::string w = fixture::command();
   TEST_ASSERT_TRUE(dec.decode(w.data(), w.size(), x, c) == CommandError::Expired);
 }
+// Same depth-64 case that tools/verify_golden.py sends to the Genesis host.
+static void test_nesting_depth_64_is_capacity() {
+  Command c;
+  std::string deep;
+  for (int i = 0; i < 63; ++i) deep += "[";
+  deep += "0";
+  for (int i = 0; i < 63; ++i) deep += "]";
+  const std::string w = fixture::command(1, ("{\"channel\":\"s\",\"x\":" + deep + "}").c_str());
+  TEST_ASSERT_TRUE(run(w, c) == CommandError::Capacity);
+  TEST_ASSERT_EQUAL_STRING("", c.id);
+}
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_valid_sample_command);
@@ -58,5 +69,6 @@ int main() {
   RUN_TEST(test_duplicate_key_rejected);
   RUN_TEST(test_malformed_and_oversize);
   RUN_TEST(test_expired_rejected);
+  RUN_TEST(test_nesting_depth_64_is_capacity);
   return UNITY_END();
 }
