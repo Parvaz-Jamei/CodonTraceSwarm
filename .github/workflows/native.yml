@@ -51,7 +51,9 @@ jobs:
         run: python -m pip install "platformio==6.2.0"
       - name: Unity tests
         run: pio test -e native
-      - name: No heap allocation symbols in library objects
+      - name: Zero-heap Unity suites (malloc family --wrap, every operator new form)
+        run: pio test -e native_noheap
+      - name: No heap allocation symbols in library and header-adapter objects
         run: python3 tools/check_no_heap.py
       - name: library.json manifest packs
         run: pio pkg pack -o "$RUNNER_TEMP"

@@ -19,6 +19,14 @@ accepts both versions (Mosquitto, aMQTT) relays between a 3.1.1 device and a 5.0
 MQTT 5 on the device is therefore not required for the current wire contract, and it is
 not implemented. `tools/broker_lab` runs its clients as MQTT 3.1.1 (`mqtt.MQTTv311`).
 
+## Heap use
+
+The adapter template itself makes no heap call (`tests/pio/test_no_heap_core` with a
+fixed-buffer fake client; `tests/heap_symbols/mqtt_adapter.cpp` in `tools/check_no_heap.py`).
+ArduinoMqttClient 0.1.8 does allocate: `messageTopic()` returns `String` by value, received
+topics are `reserve()`d into a `String`, and `beginMessage` assigns the topic to a `String`.
+Those allocations are the SDK's and are outside the zero-heap hot-path claim.
+
 ## Exact dependency and license boundary
 
 Reviewed external dependency: ArduinoMqttClient 0.1.8, Git SHA

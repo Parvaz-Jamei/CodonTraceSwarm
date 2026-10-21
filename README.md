@@ -8,7 +8,7 @@
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.11-blue.svg"></a>
   <img alt="128 KB SRAM is listed, not a measured TLS budget" src="https://img.shields.io/badge/SRAM-128%20KB%20listed%2C%20not%20measured%20TLS-orange.svg">
-  <a href="tests/pio/test_no_heap/test_main.cpp"><img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg"></a>
+  <a href="#2-zero-unbounded-allocations"><img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg"></a>
 </p>
 
 <p align="center">
@@ -52,7 +52,7 @@ Most IoT and Arduino libraries suffer from architectural pitfalls that corrupt e
 
 | Common Embedded Pitfall | How CodonTraceSwarm Solves It |
 |---|---|
-| **Heap Fragmentation (`String` / `malloc`)** | **Zero dynamic allocation on hot paths.** Static 34 KiB footprint, fixed 8 KiB transmission buffers, and deterministic stack frames. |
+| **Heap Fragmentation (`String` / `malloc`)** | **Zero heap calls in CodonTraceSwarm code on the hot paths listed under "Zero Unbounded Allocations"** (tested; third-party sensor and MQTT libraries excluded). Static 34 KiB footprint, fixed 8 KiB transmission buffers, and deterministic stack frames. |
 | **Silent Float / Locale Corruption** | **Strict C-locale numeric serializer.** Guarantees period decimal formatting (`1.50`), strictly rejecting comma locales (`1,50`). |
 | **Duplicate command admission** | **16-entry history, not a drop ring.** `submit` returns `HistoryFull` when the history is full. Accepted records are not silently dropped. Dedup is not cryptographic, and this library does not authenticate commands. `DeliveryContext.authenticated` is an adapter assertion. |
 | **Phantom Data on Clock Drift** | **Monitored clock with stale-sample gating.** Explicit uncertainty tracking; stale or uncalibrated readings are flagged before transmission. |
@@ -96,12 +96,27 @@ Supports rich data types out of the box without string coercion:
 
 ### 2. Zero Unbounded Allocations
 The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. Transmission buffers are bounded (`TxBytes = 8192`), eliminating runtime memory spikes and out-of-memory panics.
-The zero-heap hot-path claim is tested, not only stated: `tests/pio/test_no_heap` replaces
-global `operator new` with a counter and asserts zero allocations across hello, 100 readings,
-and 5 commands through `NetworkInbox` push/poll and `CommandSession` submit/poll/confirm.
-`tools/check_no_heap.py` compiles every `src/` object and fails if any references `malloc`,
-`calloc`, `realloc`, `strdup` or `operator new`. Header-only sensor and MQTT adapters are not
-covered by the symbol check, and plain `malloc` calls are covered only by that symbol check.
+**What "Heap Allocations Zero (Hot Path)" means, and how it is proven.** CodonTraceSwarm's own
+code makes no heap call on these hot paths: `Device::hello`, `reading` (scalar, vector,
+waveform, boolean, category, invalid), `heartbeat`; `CommandDecoder::decode`; `NetworkInbox`
+push/poll; `CommandSession` submit/poll/reply confirm; `ArduinoMqttAdapter`
+attach/receive/publishReply/close; and every `src/cts/sensors/*.h` adapter. Two checks back this:
+- `pio test -e native_noheap` (`tests/pio/test_no_heap_{core,sensors,fdcx}`): the link uses
+  `-Wl,--wrap=` for `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc` and
+  `posix_memalign`, and `tests/heap_counter.h` replaces every `operator new`/`delete` form
+  (plain, array, nothrow, sized, `std::align_val_t` aligned). Each listed path runs inside a
+  counting window and must record 0 allocations and 0 frees. A self-test proves each counter
+  fires. Vendor APIs are test fakes (`tests/fakes`) and the MQTT client is a fixed-buffer fake.
+- `tools/check_no_heap.py`: every `src/*.cpp` object, plus TUs in `tests/heap_symbols` that
+  emit each header-only adapter (all sensor headers and an explicit `ArduinoMqttAdapter`
+  instantiation), must reference no `malloc`, `calloc`, `realloc`, `posix_memalign`,
+  `aligned_alloc`, `strdup`, `strndup` or `operator new`.
+
+Not covered by the claim: setup calls (`define`, `begin`, `bind`), and third-party code. The
+sensor libraries are outside it, and so is ArduinoMqttClient 0.1.8: at the reviewed SHA its
+`messageTopic()` returns a `String` by value, it `reserve()`s the received topic, and
+`beginMessage` copies the topic into a `String`, so a real ArduinoMqttClient can allocate
+while the adapter runs. The adapter adds no allocation of its own.
 
 ### 3. Bidirectional Command Engine
 - Bounded 8-command FIFO. `runOne` calls a `CommandExecutor`.
