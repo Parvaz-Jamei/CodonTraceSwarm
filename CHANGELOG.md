@@ -4,12 +4,12 @@
   `tools/verify_host.py`, `verify_commands.py`, `verify_session.py` and `verify_clock.py` move to
   Genesis main 3e6686d (PR #119 merged `fix/swarm-value-strict`). The core job still checks the
   older reference host 74c7b3f, now with an explicit `--host-rev`.
-- Re-vendored the Genesis swarm fixtures from 3e6686d. All 26 files and `MANIFEST.sha256` are
+- Re-vendored the Genesis swarm fixtures from 3e6686d. All 26 files (9 valid, 17 invalid) and `MANIFEST.sha256` are
   byte-identical to the 737d17e copy. The job now verifies them against the same checkout as the
   loopback contract and fails if the two pins differ.
 - Depth-64 nested `value` is now a hard failure in `tools/verify_golden.py`; `--strict-depth`
   and the KNOWN_GAP path are gone. Genesis 3e6686d rejects it ("JSON nesting too deep") and
-  rejects all 16 invalid fixtures. The check lives in `tools/depth_check.py` and only a
+  rejects all 17 invalid fixtures. The check lives in `tools/depth_check.py` and only a
   ValueError counts as a rejection; TypeError, RecursionError or acceptance fail. Stub-decoder
   unit tests cover each case, and CI runs it against 74c7b3f (which accepts the envelope) and
   requires that run to fail. `verify_golden.py` runs the check first and cannot soften it;
