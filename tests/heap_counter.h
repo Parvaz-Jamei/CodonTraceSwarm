@@ -46,8 +46,9 @@ void free(void *p) noexcept { if (p) heap::release(); }
 void *calloc(size_t a, size_t b) noexcept {
   heap::hit();
   if (b && a > SIZE_MAX / b) { errno = ENOMEM; return nullptr; }
-  void *p = heap::take(a * b ? a * b : 1, 0);
-  if (p) std::memset(p, 0, a * b);
+  size_t n = a * b;
+  void *p = heap::take(n ? n : 1, 0);
+  if (p) std::memset(p, 0, n);
   return p;
 }
 void *realloc(void *p, size_t n) noexcept {
