@@ -3,6 +3,8 @@
 // inbox, session and ArduinoMqttAdapter hot paths. Counters: tests/heap_counter.h
 // (link-time --wrap of the malloc family plus every operator new/delete form).
 #include <unity.h>
+#include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -38,6 +40,63 @@ static void test_counters_see_every_heap_entry_point() {
   TEST_ASSERT_TRUE(count([] { char *d = nullptr; if (asprintf(&d, "%s/%d", "node", 42) > 0) { sink = d; std::free(d); } }) >= 1);
   TEST_ASSERT_TRUE(count([] { FILE *f = std::fopen("/dev/null", "r"); if (f) std::fclose(f); }) >= 1);
   TEST_ASSERT_TRUE(count([] { std::string s(100, 'x'); s += "y"; sink = const_cast<char *>(s.data()); sink = nullptr; }) >= 1);
+}
+
+static bool aligned(const void *p, size_t a) { return reinterpret_cast<uintptr_t>(p) % a == 0; }
+static void test_replacement_allocator_matches_glibc_semantics() {
+  {
+    void *p = std::malloc(8);
+    heap::Window w;
+    errno = 0;
+    TEST_ASSERT_NULL(std::realloc(p, 0)); // glibc: frees p, returns NULL
+    TEST_ASSERT_EQUAL_UINT32(1, heap::allocs);
+    TEST_ASSERT_EQUAL_UINT32(1, heap::frees);
+  }
+  { void *p = std::realloc(nullptr, 0); TEST_ASSERT_NOT_NULL(p); std::free(p); }
+  {
+    char *p = static_cast<char *>(std::malloc(4));
+    std::memcpy(p, "abc", 4);
+    heap::Window w;
+    char *q = static_cast<char *>(std::realloc(p, 64));
+    TEST_ASSERT_EQUAL_STRING("abc", q);
+    TEST_ASSERT_EQUAL_UINT32(1, heap::allocs);
+    TEST_ASSERT_EQUAL_UINT32(1, heap::frees);
+    std::free(q);
+  }
+  {
+    static int marker;
+    void *p = &marker;
+    TEST_ASSERT_EQUAL_INT(EINVAL, posix_memalign(&p, 3, 8));
+    TEST_ASSERT_EQUAL_INT(EINVAL, posix_memalign(&p, sizeof(void *) / 2, 8));
+    TEST_ASSERT_EQUAL_INT(EINVAL, posix_memalign(&p, 0, 8));
+    TEST_ASSERT_TRUE(p == &marker); // untouched on error
+    TEST_ASSERT_EQUAL_INT(0, posix_memalign(&p, 64, 8));
+    TEST_ASSERT_TRUE(aligned(p, 64));
+    std::free(p);
+  }
+  errno = 0; TEST_ASSERT_NULL(aligned_alloc(24, 48)); TEST_ASSERT_EQUAL_INT(EINVAL, errno);
+  errno = 0; TEST_ASSERT_NULL(aligned_alloc(0, 64)); TEST_ASSERT_EQUAL_INT(EINVAL, errno);
+  errno = 0; volatile size_t huge = SIZE_MAX / 2 + 1; TEST_ASSERT_NULL(aligned_alloc(huge, 64));
+  { void *p = aligned_alloc(1, 64); TEST_ASSERT_NOT_NULL(p); std::free(p); }
+  { void *p = aligned_alloc(128, 1); TEST_ASSERT_TRUE(p && aligned(p, 128)); std::free(p); }
+  { void *p = memalign(24, 8); TEST_ASSERT_TRUE(p && aligned(p, 32)); std::free(p); } // glibc rounds up
+  {
+    heap::Window w;
+    errno = 0;
+    volatile size_t big = SIZE_MAX;
+    TEST_ASSERT_NULL(reallocarray(nullptr, big, 2));
+    TEST_ASSERT_EQUAL_INT(ENOMEM, errno);
+    TEST_ASSERT_EQUAL_UINT32(1, heap::allocs); // overflow attempt is counted
+  }
+  {
+    static char outside[16] = "not from pool";
+    void *volatile foreignPtr = outside;
+    heap::Window w;
+    TEST_ASSERT_NULL(std::realloc(foreignPtr, 1u << 20)); // rejected without reading 1 MiB
+    TEST_ASSERT_EQUAL_UINT32(1, heap::foreign);
+    TEST_ASSERT_EQUAL_UINT32(1, heap::allocs);
+    TEST_ASSERT_EQUAL_STRING("not from pool", outside);
+  }
 }
 
 static ChannelSpec chan(const char *name, ValueType t) {
@@ -153,6 +212,7 @@ static void test_command_decoder_hot_path() {
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_counters_see_every_heap_entry_point);
+  RUN_TEST(test_replacement_allocator_matches_glibc_semantics);
   RUN_TEST(test_telemetry_hot_path);
   RUN_TEST(test_command_decoder_hot_path);
   RUN_TEST(test_command_and_mqtt_adapter_hot_path);

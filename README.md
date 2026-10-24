@@ -111,13 +111,22 @@ attach/receive/publishReply/close; and every `src/cts/sensors/*.h` adapter. Two 
   record 0 allocations and 0 frees. A self-test proves the counter fires for every one of those
   functions, for `new`/`new[]`/nothrow/aligned `new`, and for allocations made inside the
   runtime: `strdup`, `strndup`, `asprintf`, `fopen` and a growing `std::string`. Vendor APIs are
-  test fakes (`tests/fakes`) and the MQTT client is a fixed-buffer fake.
+  test fakes (`tests/fakes`) and the MQTT client is a fixed-buffer fake. The replacement
+  follows glibc semantics, with self-tests for each rule: `realloc(p, 0)` frees and returns NULL;
+  `posix_memalign` returns `EINVAL` unless the alignment is a power of two and a multiple of
+  `sizeof(void *)`; `aligned_alloc` returns NULL/`EINVAL` for a non-power-of-two alignment
+  (glibc >= 2.38); `memalign` rounds the alignment up; an overflowing `reallocarray` is
+  counted and returns NULL/`ENOMEM`. One deliberate difference: `realloc` of a pointer not
+  from the pool (glibc would abort) is counted, returns NULL and never reads the block.
 - `tools/check_no_heap.py`: every `src/*.cpp` object, plus TUs in `tests/heap_symbols` that
   emit each header-only adapter (all sensor headers and an explicit `ArduinoMqttAdapter`
   instantiation), must reference no `malloc`, `calloc`, `realloc`, `reallocarray`,
   `posix_memalign`, `aligned_alloc`, `memalign`, `valloc`, `pvalloc`, `strdup`, `strndup`,
-  `asprintf`, `vasprintf` (and their `__*_chk`/`__strdup` forms), `operator new`, or any
-  `std::basic_string` symbol.
+  `asprintf`, `vasprintf` (and their `__*_chk`/`__strdup` forms), the allocating stdio calls
+  (`fopen`/`fopen64`/`fdopen`/`freopen`, `open_memstream`, `fmemopen`, `getline`,
+  `getdelim`, `tmpfile`, `popen`), `operator new`, or any `std::basic_string` symbol. Every
+  object is checked at both `-O0` and `-O2`, because at `-O1`/`-O2` GCC may elide a dead
+  `new`/`delete` pair (C++14 new-expression elision).
 
 Limits of the proof: it runs on x86-64 Linux with glibc and libstdc++, not on a board; a board
 toolchain's newlib/picolibc runtime is not instrumented. Allocation by `mmap`/`brk`/`sbrk`
