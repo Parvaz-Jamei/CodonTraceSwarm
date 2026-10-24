@@ -196,7 +196,7 @@ lib_deps =
     https://github.com/Parvaz-Jamei/CodonTraceSwarm.git#0.12.11
 ```
 
-The git tag is `0.12.11`, not `v0.12.11`. `library.json` is the PlatformIO manifest. CI compiles the examples for `esp32:esp32:esp32` with arduino-cli; the `esp32dev` PlatformIO environment above is not built in CI. Host-native PlatformIO + Unity tests run with `pio test -e native` (ASan/UBSan, see `platformio.ini`): one Unity suite per module under `tests/pio/` (codec, command decoder, command session, NetworkInbox bounds, ArduinoMqttAdapter framing with a fake client). The loopback contract job checks the C++ wire format against Genesis commit `a928ee4`.
+The git tag is `0.12.11`, not `v0.12.11`. `library.json` is the PlatformIO manifest. CI compiles the examples for `esp32:esp32:esp32` with arduino-cli; the `esp32dev` PlatformIO environment above is not built in CI. Host-native PlatformIO + Unity tests run with `pio test -e native` (ASan/UBSan, see `platformio.ini`): one Unity suite per module under `tests/pio/` (codec, command decoder, command session, NetworkInbox bounds, ArduinoMqttAdapter framing with a fake client). The loopback contract job checks the C++ wire format against Genesis main commit `3e6686d`, including the vendored Genesis swarm fixtures and a strict depth-64 rejection.
 
 ---
 

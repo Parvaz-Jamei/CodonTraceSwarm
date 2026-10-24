@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   core:
-    name: sanitized core + pinned host 74c7b3f
+    name: sanitized core + reference host 74c7b3f
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -15,16 +15,16 @@ jobs:
           git -C reference-host fetch --depth 1 origin 74c7b3f15c2d093da03e392094814d63a4997c2c
           git -C reference-host checkout --detach FETCH_HEAD
       - name: Sanitized core and real-host checks
-        run: python3 tools/check.py --sanitize --host reference-host
+        run: python3 tools/check.py --sanitize --host reference-host --host-rev 74c7b3f15c2d093da03e392094814d63a4997c2c
   genesis-main:
-    # Loopback contract against a pinned recent Genesis main commit (a928ee4,
-    # main tip on 2026-10-21): C++ (ASan/UBSan) encodes, that commit's
+    # Loopback contract against a pinned Genesis main commit (3e6686d, the
+    # merge of PR #119 with the strict reading-value rules): C++ (ASan/UBSan) encodes, that commit's
     # codontrace.swarm decodes and ingests, and host-generated commands are
     # decoded by C++. Bump GENESIS_REV deliberately when Genesis main moves.
-    name: loopback contract vs Genesis a928ee4
+    name: loopback contract vs Genesis 3e6686d
     runs-on: ubuntu-24.04
     env:
-      GENESIS_REV: a928ee4ebeff20dbda721937cfad8046de435cba
+      GENESIS_REV: 3e6686d72834221f3720fe54314aa84d2ea0ec05
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Fetch Genesis at the pinned main commit
@@ -37,20 +37,14 @@ jobs:
         run: |
           echo "Genesis under test: $GENESIS_REV" | tee -a "$GITHUB_STEP_SUMMARY"
           python3 tools/check.py --sanitize --build-dir build-main --host genesis-main --host-rev "$GENESIS_REV"
-      - name: Shared golden fixtures and depth-64 case
+      - name: Shared golden fixtures and strict depth-64 case
         run: python3 tools/verify_golden.py genesis-main build-main
-      - name: Fetch Genesis swarm fixtures at the pinned GENESIS_REV
-        run: |
-          rev=$(cat tests/golden/genesis_swarm/GENESIS_REV)
-          git init genesis-fixtures
-          git -C genesis-fixtures remote add origin https://github.com/Parvaz-Jamei/codontrace-genesis.git
-          git -C genesis-fixtures fetch --depth 1 origin "$rev"
-          git -C genesis-fixtures checkout --detach FETCH_HEAD
-          echo "Genesis fixtures rev: $rev" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Vendored fixtures must be pinned to the same commit
+        run: test "$(cat tests/golden/genesis_swarm/GENESIS_REV)" = "$GENESIS_REV"
       - name: Genesis swarm fixtures sha256-pinned, encoder frames, decode outcomes
         run: |
           (cd tests/golden/genesis_swarm && sha256sum -c --strict MANIFEST.sha256)
-          python3 tools/verify_genesis_fixtures.py genesis-fixtures build-main
+          python3 tools/verify_genesis_fixtures.py genesis-main build-main
   platformio-native:
     name: PlatformIO native + Unity (ASan/UBSan)
     runs-on: ubuntu-24.04

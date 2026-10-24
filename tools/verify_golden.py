@@ -5,9 +5,9 @@
 3. Fresh host-generated commands equal tests/golden/commands.jsonl (host drift check).
 4. The C++ command probe decodes every golden command.
 5. Depth 64: an envelope whose reading value nests 64 arrays deep is rejected by the
-   host decoder (an exception, not a crash or acceptance). Without --strict-depth an
-   acceptance is reported as KNOWN_GAP; the scheduled job runs with --strict-depth. The C++ side of the same
-   case is the Unity test test_nesting_depth_64_is_capacity.
+   host decoder (an exception, not a crash or acceptance); acceptance fails the run.
+   Genesis main rejects it since 3e6686d. The C++ side of the same case is the Unity
+   test test_nesting_depth_64_is_capacity.
 """
 import argparse, json, subprocess, sys, types
 from pathlib import Path
@@ -15,7 +15,6 @@ from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('host', type=Path)
 p.add_argument('build', type=Path)
-p.add_argument('--strict-depth', action='store_true', help='fail if the host accepts depth 64')
 a = p.parse_args()
 root = Path(__file__).resolve().parents[1]
 golden = root / 'tests/golden'
@@ -56,8 +55,5 @@ try:
 except Exception as e:  # rejection is the expected result
     print(f'PASS: depth-64 envelope rejected by host ({type(e).__name__})')
 else:
-    msg = ('host decode accepted an envelope nested 64 arrays deep '
-           '(the C++ CommandDecoder rejects depth > 8 as Capacity)')
-    if a.strict_depth:
-        raise SystemExit('FAIL: ' + msg)
-    print('KNOWN_GAP (not a pass): ' + msg)
+    raise SystemExit('FAIL: host decode accepted an envelope nested 64 arrays deep '
+                     '(the C++ CommandDecoder rejects depth > 8 as Capacity)')
