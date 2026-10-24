@@ -9,7 +9,10 @@
   loopback contract and fails if the two pins differ.
 - Depth-64 nested `value` is now a hard failure in `tools/verify_golden.py`; `--strict-depth`
   and the KNOWN_GAP path are gone. Genesis 3e6686d rejects it ("JSON nesting too deep") and
-  rejects all 16 invalid fixtures.
+  rejects all 16 invalid fixtures. The check lives in `tools/depth_check.py` and only a
+  ValueError counts as a rejection; TypeError, RecursionError or acceptance fail. Stub-decoder
+  unit tests cover each case, and CI runs it against 74c7b3f (which accepts the envelope) and
+  requires that run to fail.
 
 # JR1 (unreleased, branch jr1/ci-green-honest; library version still 0.12.11)
 

@@ -16,6 +16,16 @@ jobs:
           git -C reference-host checkout --detach FETCH_HEAD
       - name: Sanitized core and real-host checks
         run: python3 tools/check.py --sanitize --host reference-host --host-rev 74c7b3f15c2d093da03e392094814d63a4997c2c
+      - name: Depth-64 check unit tests (stub decoders)
+        run: python3 -m unittest -v tools/test_depth_check.py
+      - name: Depth-64 check must fail against 74c7b3f, which accepts the envelope
+        run: |
+          set +e
+          out=$(python3 tools/depth_check.py reference-host 2>&1); rc=$?
+          set -e
+          echo "$out"
+          test "$rc" -eq 1
+          echo "$out" | grep -q '^FAIL: host accepted an envelope nested 64 arrays deep'
   genesis-main:
     # Loopback contract against a pinned Genesis main commit (3e6686d, the
     # merge of PR #119 with the strict reading-value rules): C++ (ASan/UBSan) encodes, that commit's
