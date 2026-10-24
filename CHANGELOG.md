@@ -12,7 +12,8 @@
   rejects all 16 invalid fixtures. The check lives in `tools/depth_check.py` and only a
   ValueError counts as a rejection; TypeError, RecursionError or acceptance fail. Stub-decoder
   unit tests cover each case, and CI runs it against 74c7b3f (which accepts the envelope) and
-  requires that run to fail.
+  requires that run to fail. `verify_golden.py` runs the check first and cannot soften it;
+  a negative-control step runs `verify_golden.py` against 74c7b3f and requires exit 1.
 
 # JR1 (unreleased, branch jr1/ci-green-honest; library version still 0.12.11)
 

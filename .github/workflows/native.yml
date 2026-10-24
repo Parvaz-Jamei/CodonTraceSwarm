@@ -26,6 +26,14 @@ jobs:
           echo "$out"
           test "$rc" -eq 1
           echo "$out" | grep -q '^FAIL: host accepted an envelope nested 64 arrays deep'
+      - name: Negative control, verify_golden must fail against 74c7b3f
+        run: |
+          set +e
+          out=$(python3 tools/verify_golden.py reference-host build-native 2>&1); rc=$?
+          set -e
+          echo "$out"
+          test "$rc" -eq 1
+          echo "$out" | grep -q '^FAIL: host accepted an envelope nested 64 arrays deep'
   genesis-main:
     # Loopback contract against a pinned Genesis main commit (3e6686d, the
     # merge of PR #119 with the strict reading-value rules): C++ (ASan/UBSan) encodes, that commit's

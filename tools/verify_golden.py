@@ -26,7 +26,10 @@ for name, suffix in [('codontrace', ''), ('codontrace.swarm', 'swarm'), ('codont
 from codontrace.swarm.protocol import decode
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from depth_check import depth64_rejected  # noqa: E402
+from depth_check import golden_reading, require_depth64_rejected  # noqa: E402
+
+# First, so a host that accepts depth 64 always fails here, before anything else.
+require_depth64_rejected(decode, golden_reading())
 
 fresh = (a.build / 'messages.jsonl').read_text()
 want = (golden / 'messages.jsonl').read_text()
@@ -48,8 +51,3 @@ for cmd, row in zip(gcmds, map(json.loads, rows)):
     assert row['error'] == 'ok', row
     assert row['id'] == json.loads(cmd)['command_id'], row
 print(f'PASS: {len(gcmds)} golden host commands unchanged and decoded by C++ probe')
-
-ok, detail = depth64_rejected(decode, lines[1])
-if not ok:
-    raise SystemExit('FAIL: host ' + detail)
-print(f'PASS: depth-64 envelope rejected by host ({detail})')

@@ -35,6 +35,15 @@ def depth64_rejected(decode, reading_line):
     return False, 'accepted an envelope nested 64 arrays deep (C++ rejects depth > 8 as Capacity)'
 
 
+def require_depth64_rejected(decode, reading_line):
+    """Print PASS, or exit 1 with FAIL. Callers do not get a way to soften this."""
+    ok, detail = depth64_rejected(decode, reading_line)
+    if not ok:
+        print('FAIL: host ' + detail, flush=True)
+        raise SystemExit(1)
+    print(f'PASS: depth-64 envelope rejected by host ({detail})', flush=True)
+
+
 def load_decode(host):
     for name, suffix in [('codontrace', ''), ('codontrace.swarm', 'swarm'), ('codontrace.genesis', 'genesis'), ('codontrace.contracts', 'contracts')]:
         if (host / 'src/codontrace' / suffix).is_dir():
@@ -51,6 +60,4 @@ def golden_reading():
 
 
 if __name__ == '__main__':
-    ok, detail = depth64_rejected(load_decode(Path(sys.argv[1])), golden_reading())
-    print(('PASS: depth-64 envelope rejected by host (' if ok else 'FAIL: host ') + detail + (')' if ok else ''))
-    sys.exit(0 if ok else 1)
+    require_depth64_rejected(load_decode(Path(sys.argv[1])), golden_reading())
