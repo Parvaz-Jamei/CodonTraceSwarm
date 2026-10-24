@@ -101,16 +101,28 @@ code makes no heap call on these hot paths: `Device::hello`, `reading` (scalar, 
 waveform, boolean, category, invalid), `heartbeat`; `CommandDecoder::decode`; `NetworkInbox`
 push/poll; `CommandSession` submit/poll/reply confirm; `ArduinoMqttAdapter`
 attach/receive/publishReply/close; and every `src/cts/sensors/*.h` adapter. Two checks back this:
-- `pio test -e native_noheap` (`tests/pio/test_no_heap_{core,sensors,fdcx}`): the link uses
-  `-Wl,--wrap=` for `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc` and
-  `posix_memalign`, and `tests/heap_counter.h` replaces every `operator new`/`delete` form
-  (plain, array, nothrow, sized, `std::align_val_t` aligned). Each listed path runs inside a
-  counting window and must record 0 allocations and 0 frees. A self-test proves each counter
-  fires. Vendor APIs are test fakes (`tests/fakes`) and the MQTT client is a fixed-buffer fake.
+- `pio test -e native_noheap` (`tests/pio/test_no_heap_{core,sensors,fdcx}`): the test binary
+  defines the whole C allocation family itself (`malloc`, `free`, `calloc`, `realloc`,
+  `reallocarray`, `aligned_alloc`, `memalign`, `posix_memalign`, `valloc`, `pvalloc`,
+  `malloc_usable_size`) on a private arena, and `tests/heap_counter.h` replaces every
+  `operator new`/`delete` form (plain, array, nothrow, sized, `std::align_val_t` aligned). This is
+  glibc's supported malloc replacement, so calls made inside glibc and libstdc++ are counted
+  too, not only calls in our objects. Each listed path runs inside a counting window and must
+  record 0 allocations and 0 frees. A self-test proves the counter fires for every one of those
+  functions, for `new`/`new[]`/nothrow/aligned `new`, and for allocations made inside the
+  runtime: `strdup`, `strndup`, `asprintf`, `fopen` and a growing `std::string`. Vendor APIs are
+  test fakes (`tests/fakes`) and the MQTT client is a fixed-buffer fake.
 - `tools/check_no_heap.py`: every `src/*.cpp` object, plus TUs in `tests/heap_symbols` that
   emit each header-only adapter (all sensor headers and an explicit `ArduinoMqttAdapter`
-  instantiation), must reference no `malloc`, `calloc`, `realloc`, `posix_memalign`,
-  `aligned_alloc`, `strdup`, `strndup` or `operator new`.
+  instantiation), must reference no `malloc`, `calloc`, `realloc`, `reallocarray`,
+  `posix_memalign`, `aligned_alloc`, `memalign`, `valloc`, `pvalloc`, `strdup`, `strndup`,
+  `asprintf`, `vasprintf` (and their `__*_chk`/`__strdup` forms), `operator new`, or any
+  `std::basic_string` symbol.
+
+Limits of the proof: it runs on x86-64 Linux with glibc and libstdc++, not on a board; a board
+toolchain's newlib/picolibc runtime is not instrumented. Allocation by `mmap`/`brk`/`sbrk`
+directly, or by `alloca`/VLAs (stack, not heap), is not counted; the library sources use none of
+them. Code paths are proven only as far as the tests drive them.
 
 Not covered by the claim: setup calls (`define`, `begin`, `bind`), and third-party code. The
 sensor libraries are outside it, and so is ArduinoMqttClient 0.1.8: at the reviewed SHA its
@@ -492,6 +504,16 @@ These are the compact bytes produced by `device.hello` and `device.reading` for 
 ---
 
 ## 🧪 Native Verification & Test Harness
+
+CI also runs `.github/workflows/wokwi.yml`, which builds `examples/CoreSmoke` for
+`esp32:esp32:esp32` and simulates it in Wokwi, asserting that serial prints a hello and a reading.
+It needs the `WOKWI_CLI_TOKEN` repository secret; **without it that workflow fails on purpose**
+(it never shows green for a simulation that did not run). Setup: [`docs/WOKWI.md`](docs/WOKWI.md).
+The secret is not configured yet, so the simulation has not run.
+
+The contract job also checks the Genesis swarm wire fixtures vendored in
+`tests/golden/genesis_swarm` against their `MANIFEST.sha256` at the pinned Genesis commit
+(see that directory's README).
 
 Native tests run on a host workstation. They are not a broker round-trip and not N10.
 

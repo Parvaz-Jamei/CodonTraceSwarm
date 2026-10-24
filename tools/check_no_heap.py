@@ -1,5 +1,7 @@
 """Static half of the zero-heap claim: compile every library .cpp in src/ and fail
-if any object references a heap allocation function (malloc family or operator new,
+if any object references a heap allocation function (malloc family incl. reallocarray,
+memalign, valloc, pvalloc; strdup/strndup; asprintf/vasprintf; operator new; or any
+std::basic_string symbol,
 which std::string/std::vector storage would also pull in). It also compiles
 tests/heap_symbols/*.cpp, which emit every header-only adapter (all sensors/*.h and
 an explicit ArduinoMqttAdapter instantiation) against declaration-only vendor fakes
@@ -10,7 +12,7 @@ import re, subprocess, sys, tempfile
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 cxx = sys.argv[1] if len(sys.argv) > 1 else 'c++'
-bad = re.compile(r'^(malloc|calloc|realloc|posix_memalign|aligned_alloc|strdup|strndup|_Znw\w*|_Zna\w*)$')
+bad = re.compile(r'^(malloc|calloc|realloc|reallocarray|posix_memalign|aligned_alloc|memalign|valloc|pvalloc|strdup|strndup|__strdup|__strndup|asprintf|vasprintf|__asprintf_chk|__vasprintf_chk|_Znw\w*|_Zna\w*|\w*basic_string\w*|\w*cxx11\w*string\w*)$')
 sources = sorted(list((root/'src').glob('*.cpp')) + list((root/'src/cts').glob('*.cpp')))
 headers = sorted((root/'tests/heap_symbols').glob('*.cpp'))
 expected = {'fdcx', 'mqtt_adapter', 'sensors'}

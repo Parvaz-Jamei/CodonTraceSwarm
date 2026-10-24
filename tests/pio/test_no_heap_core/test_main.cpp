@@ -3,7 +3,10 @@
 // inbox, session and ArduinoMqttAdapter hot paths. Counters: tests/heap_counter.h
 // (link-time --wrap of the malloc family plus every operator new/delete form).
 #include <unity.h>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <malloc.h>
 #include <string>
 #include "heap_counter.h"
 #include "cts/ArduinoMqttAdapter.h"
@@ -14,23 +17,27 @@ void setUp() {}
 void tearDown() { heap::counting = false; }
 
 static void *volatile sink;
+static unsigned long count(void (*f)()) { heap::Window w; f(); return heap::allocs; }
 static void test_counters_see_every_heap_entry_point() {
-  unsigned long n = 0;
-  { heap::Window w; sink = std::malloc(8); std::free(sink); n = heap::allocs; }
-  TEST_ASSERT_EQUAL_UINT32(1, n);
-  { heap::Window w; sink = std::calloc(2, 8); sink = std::realloc(sink, 32); std::free(sink); n = heap::allocs; }
-  TEST_ASSERT_EQUAL_UINT32(2, n);
-  { heap::Window w; void *p = nullptr; if (posix_memalign(&p, 64, 64) == 0) std::free(p); sink = aligned_alloc(64, 64); std::free(sink); n = heap::allocs; }
-  TEST_ASSERT_EQUAL_UINT32(2, n);
-  { heap::Window w; int *p = new int(1); delete p; int *a = new int[4]; delete[] a; n = heap::allocs; }
-  TEST_ASSERT_EQUAL_UINT32(2, n);
-  { heap::Window w; int *p = new (std::nothrow) int(1); delete p; int *a = new (std::nothrow) int[4]; delete[] a; n = heap::allocs; }
-  TEST_ASSERT_EQUAL_UINT32(2, n);
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = std::malloc(8); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = std::calloc(2, 8); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(2, count([] { sink = std::malloc(4); sink = std::realloc(sink, 32); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = reallocarray(nullptr, 4, 8); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = aligned_alloc(64, 64); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = memalign(64, 64); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { void *p = nullptr; if (posix_memalign(&p, 64, 64) == 0) std::free(p); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = valloc(64); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(1, count([] { sink = pvalloc(64); std::free(sink); }));
+  TEST_ASSERT_EQUAL_UINT32(2, count([] { int *p = new int(1); delete p; int *a = new int[4]; delete[] a; }));
+  TEST_ASSERT_EQUAL_UINT32(2, count([] { int *p = new (std::nothrow) int(1); delete p; int *a = new (std::nothrow) int[4]; delete[] a; }));
   struct alignas(64) Wide { char b[64]; };
-  { heap::Window w; Wide *p = new Wide; delete p; Wide *a = new Wide[2]; delete[] a; Wide *q = new (std::nothrow) Wide; delete q; n = heap::allocs; }
-  TEST_ASSERT_EQUAL_UINT32(3, n);
-  { heap::Window w; std::string s(100, 'x'); sink = const_cast<char *>(s.data()); n = heap::allocs; sink = nullptr; }
-  TEST_ASSERT_TRUE(n >= 1);
+  TEST_ASSERT_EQUAL_UINT32(3, count([] { Wide *p = new Wide; delete p; Wide *a = new Wide[2]; delete[] a; Wide *q = new (std::nothrow) Wide; delete q; }));
+  // libc-internal and libstdc++-internal allocations go through the replaced family.
+  TEST_ASSERT_TRUE(count([] { char *d = strdup("genesis/swarm/lab/node/down"); sink = d; std::free(d); }) >= 1);
+  TEST_ASSERT_TRUE(count([] { char *d = strndup("genesis/swarm", 7); sink = d; std::free(d); }) >= 1);
+  TEST_ASSERT_TRUE(count([] { char *d = nullptr; if (asprintf(&d, "%s/%d", "node", 42) > 0) { sink = d; std::free(d); } }) >= 1);
+  TEST_ASSERT_TRUE(count([] { FILE *f = std::fopen("/dev/null", "r"); if (f) std::fclose(f); }) >= 1);
+  TEST_ASSERT_TRUE(count([] { std::string s(100, 'x'); s += "y"; sink = const_cast<char *>(s.data()); sink = nullptr; }) >= 1);
 }
 
 static ChannelSpec chan(const char *name, ValueType t) {

@@ -1,3 +1,36 @@
+# JR1 (unreleased, branch jr1/ci-green-honest; library version still 0.12.11)
+
+No wire or protocol behaviour changed in JR1. Nothing was flashed or bench-tested.
+
+- CI compile matrix (`arduino.yml`): arduino-cli 1.5.1 via SHA-pinned
+  `arduino/setup-arduino-cli`; every architecture in `library.properties` compiles every
+  example with pinned cores (esp32 3.3.12, rp2040 6.3.0, renesas_portenta 1.6.0, mbed 4.6.0)
+  and pinned sensor libraries; nano33ble also on macOS and Windows; `--warnings all`, and any
+  warning in library or sketch code fails the job. Arduino lint fixed; macOS bash 3.2 fixed.
+  `evidence/arduino_compile_matrix.json` records a CI result and replaces the stale NOT_RUN file.
+- All GitHub Actions are pinned by commit SHA.
+- PlatformIO native + Unity (`native.yml`): per-module suites (codec, command decoder,
+  command session, network inbox, MQTT adapter; 25 tests) under ASan/UBSan.
+- Loopback contract against Genesis main pinned at a928ee4: C++ envelopes decode on the host and
+  host commands decode in C++. Shared fixtures in `tests/golden` (`messages.jsonl`,
+  `commands.jsonl`) plus a depth-64 nested `value` case: C++ rejects it as Capacity; Genesis
+  a928ee4 accepts it, reported as KNOWN_GAP on push and a failure in the weekly drift job.
+- Vendored Genesis swarm wire fixtures (`tests/golden/genesis_swarm`, Genesis 737d17e,
+  `fix/swarm-value-strict`): the contract job checks them against `MANIFEST.sha256` at that
+  commit, checks the seven encoder frames against fresh C++ output, and checks the decode outcomes.
+- `genesis-drift.yml`: weekly job against the latest Genesis main (runs only once on the default branch).
+- `library.json` for PlatformIO with the 7 pinned sensor dependencies; `pio pkg pack` in CI;
+  kept in sync with `library.properties`.
+- Docs state the device side is MQTT 3.1.1 (ArduinoMqttClient); MQTT 5 is host-only, not implemented here.
+- Zero-heap proof for the listed hot paths: `native_noheap` Unity suites with the test binary
+  replacing the whole malloc family (incl. reallocarray, memalign, valloc, pvalloc) and every
+  operator new form, so glibc- and libstdc++-internal allocations (strdup, asprintf, fopen,
+  std::string) are counted; plus `tools/check_no_heap.py` symbol check over library objects and
+  header-only adapters. Limits are in README section 2.
+- Wokwi ESP32 simulation of CoreSmoke (`wokwi.yml`, `docs/WOKWI.md`): needs `WOKWI_CLI_TOKEN`;
+  without it the workflow fails on purpose. Not run yet.
+- README CI badges.
+
 - 0.12.11: A hello that keeps failing closes the link after one loss and reconnects on the existing backoff. Readings stay blocked until the new hello completes. Sensor sketches print a local value or the sample status and do not open a codec session. CoreSmoke prints a hello and a reading. Not flashed.
 - 0.12.10: A short or missing BME280 calibration no longer becomes a valid pressure of 0. dig_P1==0 is invalid_calibration. Humidity coefficients are decoded without a signed left shift. A Hello or Reading that keeps failing is dropped once after two attempt timeouts, and that budget does not drop a command reply. README examples match the dispatcher API and do not call millis() a UTC clock. Not flashed. PUBACK is still not Genesis acceptance.
 - 0.12.9: A publish that keeps accepting bytes is still cancelled 2 attempt-timeouts after it started. BME280 no longer treats an Adafruit getter float as success; calibration and measurement bytes come from a checked Wire read, and a short read is invalid. The two FDC1004 headers cannot be included together. Not Wi-Fi, not MQTT, not flashed. Host acceptance of a reply is still not the same as PUBACK.

@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: MIT
 // TEST ONLY: heap-call counters for the zero-allocation suites.
 // Include in exactly one TU per test binary built by [env:native_noheap].
-// - malloc/calloc/realloc/free (and aligned_alloc, posix_memalign) are
-//   intercepted at link time with -Wl,--wrap=..., so every call made from
-//   CodonTraceSwarm objects and the test TU is counted.
-// - operator new/new[]/delete/delete[] are replaced (plain, nothrow, sized,
-//   std::align_val_t aligned, aligned nothrow), which also catches allocations
-//   made through libstdc++ (std::string, std::vector, std::function).
+//
+// The binary defines the whole C allocation family itself (malloc, free,
+// calloc, realloc, reallocarray, aligned_alloc, memalign, posix_memalign,
+// valloc, pvalloc, malloc_usable_size), backed by a private static arena.
+// glibc documents this as supported malloc replacement: the dynamic linker
+// binds every caller to these definitions, including calls made inside libc
+// (strdup, strndup, asprintf, fopen, ...) and libstdc++ (std::string storage).
+// It does not use __malloc_hook (removed in glibc 2.34) or __libc_* entry points.
+// Every operator new/delete form is replaced as well, so C++ allocation is
+// counted even if a toolchain's operator new did not go through malloc.
 #pragma once
 #include <cstddef>
-#include <cstdlib>
+#include <cstdint>
+#include <cstring>
+#include <cerrno>
 #include <new>
-extern "C" {
-void *__real_malloc(size_t);
-void *__real_calloc(size_t, size_t);
-void *__real_realloc(void *, size_t);
-void __real_free(void *);
-void *__real_aligned_alloc(size_t, size_t);
-int __real_posix_memalign(void **, size_t, size_t);
-}
 namespace heap {
 static volatile bool counting = false;
 static volatile unsigned long allocs = 0, frees = 0;
@@ -28,35 +26,71 @@ struct Window {
   Window() { allocs = 0; frees = 0; counting = true; }
   ~Window() { counting = false; }
 };
+// Bump arena: free() only counts; memory is not reused. Tests are short.
+alignas(4096) static unsigned char arena[64u << 20];
+static size_t used = 0;
+struct Header { size_t size; size_t pad[1]; };
+static void *take(size_t n, size_t align) {
+  if (align < alignof(std::max_align_t)) align = alignof(std::max_align_t);
+  size_t start = (used + sizeof(Header) + align - 1) & ~(align - 1);
+  if (n > sizeof arena || start + n > sizeof arena) { errno = ENOMEM; return nullptr; }
+  reinterpret_cast<Header *>(arena + start - sizeof(Header))->size = n;
+  used = start + n;
+  return arena + start;
+}
+static size_t sizeOf(void *p) { return reinterpret_cast<Header *>(static_cast<unsigned char *>(p) - sizeof(Header))->size; }
 } // namespace heap
 extern "C" {
-void *__wrap_malloc(size_t n) { heap::hit(); return __real_malloc(n); }
-void *__wrap_calloc(size_t a, size_t b) { heap::hit(); return __real_calloc(a, b); }
-void *__wrap_realloc(void *p, size_t n) { heap::hit(); return __real_realloc(p, n); }
-void __wrap_free(void *p) { if (p) heap::release(); __real_free(p); }
-void *__wrap_aligned_alloc(size_t a, size_t n) { heap::hit(); return __real_aligned_alloc(a, n); }
-int __wrap_posix_memalign(void **p, size_t a, size_t n) { heap::hit(); return __real_posix_memalign(p, a, n); }
-}
-static void *heapNew(std::size_t n) {
+void *malloc(size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, 0); }
+void free(void *p) noexcept { if (p) heap::release(); }
+void *calloc(size_t a, size_t b) noexcept {
   heap::hit();
-  if (void *p = __real_malloc(n ? n : 1)) return p;
+  if (b && a > SIZE_MAX / b) { errno = ENOMEM; return nullptr; }
+  void *p = heap::take(a * b ? a * b : 1, 0);
+  if (p) std::memset(p, 0, a * b);
+  return p;
+}
+void *realloc(void *p, size_t n) noexcept {
+  heap::hit();
+  void *q = heap::take(n ? n : 1, 0);
+  if (p && q) {
+    bool mine = static_cast<unsigned char *>(p) >= heap::arena && static_cast<unsigned char *>(p) < heap::arena + sizeof heap::arena;
+    size_t o = mine ? heap::sizeOf(p) : n; // foreign block (pre-relocation loader): copy n
+    std::memcpy(q, p, o < n ? o : n);
+  }
+  return q;
+}
+void *reallocarray(void *p, size_t a, size_t b) noexcept {
+  if (b && a > SIZE_MAX / b) { errno = ENOMEM; return nullptr; }
+  return realloc(p, a * b);
+}
+void *aligned_alloc(size_t a, size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, a); }
+void *memalign(size_t a, size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, a); }
+int posix_memalign(void **out, size_t a, size_t n) noexcept {
+  heap::hit();
+  void *p = heap::take(n ? n : 1, a);
+  if (!p) return ENOMEM;
+  *out = p;
+  return 0;
+}
+void *valloc(size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, 4096); }
+void *pvalloc(size_t n) noexcept { heap::hit(); return heap::take(((n ? n : 1) + 4095) & ~size_t(4095), 4096); }
+size_t malloc_usable_size(void *p) noexcept { return p ? heap::sizeOf(p) : 0; }
+}
+static void *heapNew(std::size_t n, std::size_t a) {
+  heap::hit();
+  if (void *p = heap::take(n ? n : 1, a)) return p;
   throw std::bad_alloc();
 }
-static void *heapNewAligned(std::size_t n, std::align_val_t a) {
-  heap::hit();
-  void *p = nullptr;
-  if (__real_posix_memalign(&p, static_cast<std::size_t>(a) < sizeof(void *) ? sizeof(void *) : static_cast<std::size_t>(a), n ? n : 1) == 0) return p;
-  throw std::bad_alloc();
-}
-static void heapDelete(void *p) noexcept { if (p) heap::release(); __real_free(p); }
-void *operator new(std::size_t n) { return heapNew(n); }
-void *operator new[](std::size_t n) { return heapNew(n); }
-void *operator new(std::size_t n, const std::nothrow_t &) noexcept { try { return heapNew(n); } catch (...) { return nullptr; } }
-void *operator new[](std::size_t n, const std::nothrow_t &) noexcept { try { return heapNew(n); } catch (...) { return nullptr; } }
-void *operator new(std::size_t n, std::align_val_t a) { return heapNewAligned(n, a); }
-void *operator new[](std::size_t n, std::align_val_t a) { return heapNewAligned(n, a); }
-void *operator new(std::size_t n, std::align_val_t a, const std::nothrow_t &) noexcept { try { return heapNewAligned(n, a); } catch (...) { return nullptr; } }
-void *operator new[](std::size_t n, std::align_val_t a, const std::nothrow_t &) noexcept { try { return heapNewAligned(n, a); } catch (...) { return nullptr; } }
+void *operator new(std::size_t n) { return heapNew(n, 0); }
+void *operator new[](std::size_t n) { return heapNew(n, 0); }
+void *operator new(std::size_t n, const std::nothrow_t &) noexcept { heap::hit(); return heap::take(n ? n : 1, 0); }
+void *operator new[](std::size_t n, const std::nothrow_t &) noexcept { heap::hit(); return heap::take(n ? n : 1, 0); }
+void *operator new(std::size_t n, std::align_val_t a) { return heapNew(n, static_cast<std::size_t>(a)); }
+void *operator new[](std::size_t n, std::align_val_t a) { return heapNew(n, static_cast<std::size_t>(a)); }
+void *operator new(std::size_t n, std::align_val_t a, const std::nothrow_t &) noexcept { heap::hit(); return heap::take(n ? n : 1, static_cast<std::size_t>(a)); }
+void *operator new[](std::size_t n, std::align_val_t a, const std::nothrow_t &) noexcept { heap::hit(); return heap::take(n ? n : 1, static_cast<std::size_t>(a)); }
+static void heapDelete(void *p) noexcept { if (p) heap::release(); }
 void operator delete(void *p) noexcept { heapDelete(p); }
 void operator delete[](void *p) noexcept { heapDelete(p); }
 void operator delete(void *p, std::size_t) noexcept { heapDelete(p); }
