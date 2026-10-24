@@ -13,7 +13,7 @@ p.add_argument('--evidence',type=Path)
 a=p.parse_args()
 import os
 # CTS_HOST_REV: Genesis revision under test (default: the pinned contract host).
-pin=os.environ.get('CTS_HOST_REV','74c7b3f15c2d093da03e392094814d63a4997c2c')
+pin=os.environ.get('CTS_HOST_REV','3e6686d72834221f3720fe54314aa84d2ea0ec05')
 assert subprocess.check_output(['git','-C',str(a.host),'rev-parse','HEAD'],text=True).strip()==pin
 for name,suffix in [('codontrace',''),('codontrace.swarm','swarm'),('codontrace.genesis','genesis')]:
  m=types.ModuleType(name);m.__path__=[str((a.host/'src/codontrace'/suffix).resolve())];sys.modules[name]=m

@@ -1,9 +1,9 @@
 # Vendored Genesis swarm wire fixtures
 
 Copied byte for byte from `codontrace-genesis` `tests/golden/swarm/` at the commit in
-`GENESIS_REV` (branch `fix/swarm-value-strict`, not yet on Genesis main), together
-with its `MANIFEST.sha256`. Do not edit these files here; bump `GENESIS_REV`, re-copy
-and commit the new manifest in one change.
+`GENESIS_REV` (Genesis main, 3e6686d, which merged `fix/swarm-value-strict` in PR #119), together
+with its `MANIFEST.sha256`. Do not edit these files here. To move the pin, bump `GENESIS_REV` and the contract
+job's `GENESIS_REV` together, re-copy the files and commit the new manifest in one change.
 
 `tools/verify_genesis_fixtures.py <genesis checkout at GENESIS_REV> <build dir>`
 (run by the "loopback contract" job in `.github/workflows/native.yml`) checks:

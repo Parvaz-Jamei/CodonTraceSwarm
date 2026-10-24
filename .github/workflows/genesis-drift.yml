@@ -23,4 +23,4 @@ jobs:
           echo "Genesis main under test: $rev" | tee -a "$GITHUB_STEP_SUMMARY"
           python3 tools/check.py --sanitize --build-dir build-latest --host genesis-latest --host-rev "$rev"
       - name: Shared golden fixtures and strict depth-64 case
-        run: python3 tools/verify_golden.py --strict-depth genesis-latest build-latest
+        run: python3 tools/verify_golden.py genesis-latest build-latest

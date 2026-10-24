@@ -12,7 +12,7 @@ import types
 
 import os
 # CTS_HOST_REV: Genesis revision under test (default: the pinned contract host).
-PIN = os.environ.get('CTS_HOST_REV', '74c7b3f15c2d093da03e392094814d63a4997c2c')
+PIN = os.environ.get('CTS_HOST_REV', '3e6686d72834221f3720fe54314aa84d2ea0ec05')
 p = argparse.ArgumentParser()
 p.add_argument('host', type=Path)
 p.add_argument('messages', type=Path)

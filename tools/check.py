@@ -7,7 +7,7 @@ import sys
 
 p = argparse.ArgumentParser()
 p.add_argument('--host', type=Path, help='Pinned original Genesis checkout')
-p.add_argument('--host-rev', help='Expected git revision of --host (default: pinned 74c7b3f)')
+p.add_argument('--host-rev', help='Expected git revision of --host (default: pinned Genesis main 3e6686d)')
 p.add_argument('--sanitize', action='store_true')
 p.add_argument('--build-dir', type=Path, default=Path('build-native'))
 a = p.parse_args()

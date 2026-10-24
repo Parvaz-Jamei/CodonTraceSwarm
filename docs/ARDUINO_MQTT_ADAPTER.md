@@ -12,7 +12,7 @@ level 4 (`MqttClient.cpp` line 906 at the reviewed SHA), which is MQTT 3.1.1, an
 MQTT 5 properties. The adapter uses only QoS 1, retain=false, and exact topics
 `genesis/swarm/<swarm>/<node>/down` (subscribe) and `.../up` (publish).
 
-The Genesis host bridge (`codontrace.swarm.mqtt` at a928ee4) connects with paho-mqtt as
+The Genesis host bridge (`codontrace.swarm.mqtt` at 3e6686d) connects with paho-mqtt as
 an MQTT 5 client. It uses one MQTT 5 feature, the CONNECT Session Expiry Interval on its
 own session. It sets no per-message properties that a device must read. A broker that
 accepts both versions (Mosquitto, aMQTT) relays between a 3.1.1 device and a 5.0 host.

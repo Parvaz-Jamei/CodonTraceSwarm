@@ -5,9 +5,10 @@
 3. Fresh host-generated commands equal tests/golden/commands.jsonl (host drift check).
 4. The C++ command probe decodes every golden command.
 5. Depth 64: an envelope whose reading value nests 64 arrays deep is rejected by the
-   host decoder (an exception, not a crash or acceptance). Without --strict-depth an
-   acceptance is reported as KNOWN_GAP; the scheduled job runs with --strict-depth. The C++ side of the same
-   case is the Unity test test_nesting_depth_64_is_capacity.
+   host decoder with ValueError; acceptance or any other exception fails the run
+   (tools/depth_check.py, tested with stub decoders in tools/test_depth_check.py).
+   Genesis main rejects it since 3e6686d. The C++ side of the same case is the Unity
+   test test_nesting_depth_64_is_capacity.
 """
 import argparse, json, subprocess, sys, types
 from pathlib import Path
@@ -15,7 +16,6 @@ from pathlib import Path
 p = argparse.ArgumentParser()
 p.add_argument('host', type=Path)
 p.add_argument('build', type=Path)
-p.add_argument('--strict-depth', action='store_true', help='fail if the host accepts depth 64')
 a = p.parse_args()
 root = Path(__file__).resolve().parents[1]
 golden = root / 'tests/golden'
@@ -24,6 +24,12 @@ for name, suffix in [('codontrace', ''), ('codontrace.swarm', 'swarm'), ('codont
         m = types.ModuleType(name); m.__path__ = [str((a.host / 'src/codontrace' / suffix).resolve())]
         sys.modules[name] = m
 from codontrace.swarm.protocol import decode
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from depth_check import golden_reading, require_depth64_rejected  # noqa: E402
+
+# First, so a host that accepts depth 64 always fails here, before anything else.
+require_depth64_rejected(decode, golden_reading())
 
 fresh = (a.build / 'messages.jsonl').read_text()
 want = (golden / 'messages.jsonl').read_text()
@@ -45,19 +51,3 @@ for cmd, row in zip(gcmds, map(json.loads, rows)):
     assert row['error'] == 'ok', row
     assert row['id'] == json.loads(cmd)['command_id'], row
 print(f'PASS: {len(gcmds)} golden host commands unchanged and decoded by C++ probe')
-
-reading = json.loads(lines[1])
-deep = 0
-for _ in range(63):
-    deep = [deep]
-reading['payload']['value'] = deep
-try:
-    decode(json.dumps(reading))
-except Exception as e:  # rejection is the expected result
-    print(f'PASS: depth-64 envelope rejected by host ({type(e).__name__})')
-else:
-    msg = ('host decode accepted an envelope nested 64 arrays deep '
-           '(the C++ CommandDecoder rejects depth > 8 as Capacity)')
-    if a.strict_depth:
-        raise SystemExit('FAIL: ' + msg)
-    print('KNOWN_GAP (not a pass): ' + msg)
