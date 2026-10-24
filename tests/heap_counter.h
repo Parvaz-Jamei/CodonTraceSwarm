@@ -20,18 +20,26 @@
 namespace heap {
 static volatile bool counting = false;
 static volatile unsigned long allocs = 0, frees = 0;
+// realloc() calls whose pointer did not come from this pool (rejected, never read).
+static volatile unsigned long foreign = 0;
 inline void hit() { if (counting) ++allocs; }
 inline void release() { if (counting) ++frees; }
 struct Window {
-  Window() { allocs = 0; frees = 0; counting = true; }
+  Window() { allocs = 0; frees = 0; foreign = 0; counting = true; }
   ~Window() { counting = false; }
 };
 // Bump arena: free() only counts; memory is not reused. Tests are short.
 alignas(4096) static unsigned char arena[64u << 20];
 static size_t used = 0;
 struct Header { size_t size; size_t pad[1]; };
+inline bool pow2(size_t a) { return a && !(a & (a - 1)); }
+inline bool mine(const void *p) {
+  return static_cast<const unsigned char *>(p) >= arena && static_cast<const unsigned char *>(p) < arena + sizeof arena;
+}
 static void *take(size_t n, size_t align) {
+  if (align > sizeof arena) { errno = ENOMEM; return nullptr; }
   if (align < alignof(std::max_align_t)) align = alignof(std::max_align_t);
+  while (!pow2(align)) align += align & -align; // round up to a power of two (glibc memalign)
   size_t start = (used + sizeof(Header) + align - 1) & ~(align - 1);
   if (n > sizeof arena || start + n > sizeof arena) { errno = ENOMEM; return nullptr; }
   reinterpret_cast<Header *>(arena + start - sizeof(Header))->size = n;
@@ -51,24 +59,37 @@ void *calloc(size_t a, size_t b) noexcept {
   if (p) std::memset(p, 0, n);
   return p;
 }
+// Semantics follow glibc (malloc(3), posix_memalign(3), aligned_alloc in glibc >= 2.38):
+// realloc(p, 0) with p != NULL frees p and returns NULL; realloc(NULL, n) is malloc(n).
 void *realloc(void *p, size_t n) noexcept {
   heap::hit();
+  // Not from this pool (glibc would abort on an invalid pointer): count it, return NULL,
+  // and never read the block, so its size is irrelevant.
+  if (p && !heap::mine(p)) { heap::foreign = heap::foreign + 1; errno = EINVAL; return nullptr; }
+  if (p && n == 0) { heap::release(); return nullptr; }
   void *q = heap::take(n ? n : 1, 0);
   if (p && q) {
-    bool mine = static_cast<unsigned char *>(p) >= heap::arena && static_cast<unsigned char *>(p) < heap::arena + sizeof heap::arena;
-    size_t o = mine ? heap::sizeOf(p) : n; // foreign block (pre-relocation loader): copy n
+    size_t o = heap::sizeOf(p);
     std::memcpy(q, p, o < n ? o : n);
+    heap::release();
   }
   return q;
 }
 void *reallocarray(void *p, size_t a, size_t b) noexcept {
-  if (b && a > SIZE_MAX / b) { errno = ENOMEM; return nullptr; }
+  if (b && a > SIZE_MAX / b) { heap::hit(); errno = ENOMEM; return nullptr; } // counted attempt
   return realloc(p, a * b);
 }
-void *aligned_alloc(size_t a, size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, a); }
+// glibc >= 2.38: alignment must be a power of two, else NULL/EINVAL. Size need not be a
+// multiple of the alignment (C17 DR 460; glibc does not check it).
+void *aligned_alloc(size_t a, size_t n) noexcept {
+  heap::hit();
+  if (!heap::pow2(a)) { errno = EINVAL; return nullptr; }
+  return heap::take(n ? n : 1, a);
+}
 void *memalign(size_t a, size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, a); }
 int posix_memalign(void **out, size_t a, size_t n) noexcept {
   heap::hit();
+  if (!heap::pow2(a) || a % sizeof(void *)) return EINVAL; // *out untouched, as POSIX
   void *p = heap::take(n ? n : 1, a);
   if (!p) return ENOMEM;
   *out = p;
@@ -76,7 +97,7 @@ int posix_memalign(void **out, size_t a, size_t n) noexcept {
 }
 void *valloc(size_t n) noexcept { heap::hit(); return heap::take(n ? n : 1, 4096); }
 void *pvalloc(size_t n) noexcept { heap::hit(); return heap::take(((n ? n : 1) + 4095) & ~size_t(4095), 4096); }
-size_t malloc_usable_size(void *p) noexcept { return p ? heap::sizeOf(p) : 0; }
+size_t malloc_usable_size(void *p) noexcept { return p && heap::mine(p) ? heap::sizeOf(p) : 0; }
 }
 static void *heapNew(std::size_t n, std::size_t a) {
   heap::hit();

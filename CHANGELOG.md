@@ -26,7 +26,10 @@ No wire or protocol behaviour changed in JR1. Nothing was flashed or bench-teste
   replacing the whole malloc family (incl. reallocarray, memalign, valloc, pvalloc) and every
   operator new form, so glibc- and libstdc++-internal allocations (strdup, asprintf, fopen,
   std::string) are counted; plus `tools/check_no_heap.py` symbol check over library objects and
-  header-only adapters. Limits are in README section 2.
+  header-only adapters at -O0 and -O2 (including allocating stdio calls such as fopen,
+  open_memstream, getline, getdelim). The replacement allocator follows glibc semantics for
+  realloc(p, 0), posix_memalign/aligned_alloc alignment errors and reallocarray overflow.
+  Limits are in README section 2.
 - Wokwi ESP32 simulation of CoreSmoke (`wokwi.yml`, `docs/WOKWI.md`): needs `WOKWI_CLI_TOKEN`;
   without it the workflow fails on purpose. Not run yet.
 - README CI badges.
