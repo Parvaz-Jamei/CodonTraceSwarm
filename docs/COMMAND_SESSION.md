@@ -104,4 +104,5 @@ and swarm/runtime.py command/reply state transitions. Original host source is no
 MQTT 5.0 section 4.10 distinguishes application request/response from transport delivery:
 https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html
 Consulted 2026-10-13 Asia/Tehran. This package uses the existing Genesis command_id as
-application correlation; it does not yet implement MQTT Response Topic properties.
+application correlation. The device side is MQTT 3.1.1, which has no Response Topic or
+Correlation Data properties; this library does not implement MQTT 5.

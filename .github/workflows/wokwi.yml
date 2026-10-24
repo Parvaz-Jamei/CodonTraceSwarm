@@ -1,0 +1,50 @@
+name: Wokwi ESP32 simulation
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  ARDUINO_CLI_VERSION: "1.5.1"
+jobs:
+  coresmoke:
+    # Simulates examples/CoreSmoke on an ESP32 in Wokwi and asserts the serial
+    # output. Needs the WOKWI_CLI_TOKEN repository secret (docs/WOKWI.md).
+    # Without it this job FAILS on purpose: a simulation that did not run must
+    # never show as a green check.
+    name: Wokwi CoreSmoke (esp32:esp32:esp32)
+    runs-on: ubuntu-24.04
+    env:
+      HAS_WOKWI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN != '' }}
+    steps:
+      - name: Require WOKWI_CLI_TOKEN
+        if: env.HAS_WOKWI_TOKEN != 'true'
+        run: |
+          msg="NOT RUN: WOKWI_CLI_TOKEN repository secret is not set, so the Wokwi simulation did not run. Failing on purpose; see docs/WOKWI.md."
+          echo "::error::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2.0.0
+        with:
+          version: ${{ env.ARDUINO_CLI_VERSION }}
+      - name: Build CoreSmoke for ESP32
+        run: |
+          set -euo pipefail
+          export ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS="https://espressif.github.io/arduino-esp32/package_esp32_index.json"
+          arduino-cli core update-index
+          arduino-cli core install "esp32:esp32@3.3.12"
+          cp -a examples/CoreSmoke "$RUNNER_TEMP/CoreSmoke"
+          arduino-cli compile --fqbn esp32:esp32:esp32 --library "$GITHUB_WORKSPACE" \
+            --output-dir tests/wokwi/coresmoke/build "$RUNNER_TEMP/CoreSmoke"
+          ls -l tests/wokwi/coresmoke/build
+      - name: Simulate and assert serial output
+        uses: wokwi/wokwi-ci-action@09e807a07e05b6f2498e43e3fb7ffcf38c277af7 # v1.3.0
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: tests/wokwi/coresmoke
+          timeout: 30000
+          scenario: coresmoke.test.yaml
+          fail_text: "Guru Meditation"
+          serial_log_file: tests/wokwi/coresmoke/serial.log

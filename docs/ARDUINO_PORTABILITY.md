@@ -83,3 +83,13 @@ Full qualification still needs a memory map, toolchain pin, and hardware tests.
 
 `cts::Millis32` observes an unsigned 32-bit counter. It is not UTC and it does
 not make a removed board supported.
+
+## Compiler warnings in CI
+
+`.github/workflows/arduino.yml` compiles with `arduino-cli compile --warnings all`.
+arduino-cli has no portable warnings-as-errors switch, and adding `-Werror` through
+`compiler.cpp.extra_flags` would also fail on warnings inside board cores and the seven
+third-party sensor libraries, which this repository does not control. So the job fails
+when any warning points into this library's `src/` or an example sketch, and only prints
+warnings from cores and sensor libraries. The host-native builds (`tools/check.py`,
+`platformio.ini`) use `-Wall -Wextra -Wpedantic -Werror` with no exception.

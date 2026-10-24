@@ -1,0 +1,8 @@
+# Serial assertions for CoreSmoke: the hello and then a reading envelope,
+# both genesis_swarm_v2. Simulated ESP32 only; not a physical board.
+name: CoreSmoke serial output
+version: 1
+author: Parvaz Jamei
+steps:
+  - wait-serial: '"kind":"hello"'
+  - wait-serial: '"kind":"reading"'

@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "CodonTraceSwarm",
   "version": "0.12.11",
-  "description": "C++11 codec for CodonTrace Genesis swarm messages (genesis_swarm_v2). Optional header-only adapters call a sensor's own library; install that library yourself to use its header. No Wi-Fi or MQTT stack is bundled. Compile-tested in CI, not flashed.",
+  "description": "C++11 codec for CodonTrace Genesis swarm messages (genesis_swarm_v2). Optional header-only adapters call a sensor's own library; the same 7 sensor libraries as library.properties depends= are declared as dependencies, at the versions CI compiles against. No Wi-Fi or MQTT stack is bundled; the optional ArduinoMqttAdapter.h header adapts a user-supplied ArduinoMqttClient (MQTT 3.1.1, not MQTT 5). Compile-tested in CI, not flashed.",
   "keywords": [
     "codontrace",
     "genesis",
@@ -49,5 +49,41 @@
       "platformio.ini",
       "build*"
     ]
-  }
+  },
+  "dependencies": [
+    {
+      "owner": "adafruit",
+      "name": "Adafruit BME280 Library",
+      "version": "2.3.0"
+    },
+    {
+      "owner": "adafruit",
+      "name": "Adafruit SHT4x Library",
+      "version": "1.0.5"
+    },
+    {
+      "owner": "adafruit",
+      "name": "Adafruit INA219",
+      "version": "1.2.3"
+    },
+    {
+      "owner": "adafruit",
+      "name": "Adafruit_VL53L0X",
+      "version": "1.2.5"
+    },
+    {
+      "owner": "bogde",
+      "name": "HX711",
+      "version": "0.7.5"
+    },
+    {
+      "name": "ProtoCentral FDC1004 Capacitive Sensor Library",
+      "version": "https://github.com/Protocentral/ProtoCentral_fdc1004_breakout.git#v2.0.1"
+    },
+    {
+      "owner": "parvaz-jamei",
+      "name": "FDCxCapSense",
+      "version": "0.6.13"
+    }
+  ]
 }

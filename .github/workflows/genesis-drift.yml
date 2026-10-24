@@ -1,0 +1,26 @@
+name: Genesis main drift (scheduled)
+# Weekly, non-blocking for pushes: checks the C++ wire format against the
+# latest codontrace-genesis main, not the pinned commit in native.yml.
+# A red run here means Genesis main moved away from this library's contract
+# (or still accepts the depth-64 envelope); it does not gate pull requests.
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  latest-main:
+    name: contract vs latest Genesis main
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Fetch latest Genesis main
+        run: git clone --depth 1 --branch main https://github.com/Parvaz-Jamei/codontrace-genesis.git genesis-latest
+      - name: Contract checks against latest main
+        run: |
+          rev="$(git -C genesis-latest rev-parse HEAD)"
+          echo "Genesis main under test: $rev" | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 tools/check.py --sanitize --build-dir build-latest --host genesis-latest --host-rev "$rev"
+      - name: Shared golden fixtures and strict depth-64 case
+        run: python3 tools/verify_golden.py --strict-depth genesis-latest build-latest

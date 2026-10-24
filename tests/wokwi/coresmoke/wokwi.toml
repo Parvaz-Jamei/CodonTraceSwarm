@@ -1,0 +1,7 @@
+# Wokwi CI simulation of examples/CoreSmoke on an ESP32 DevKit.
+# The firmware is built by .github/workflows/wokwi.yml with arduino-cli
+# (esp32:esp32:esp32, core 3.3.12) into build/ next to this file.
+[wokwi]
+version = 1
+firmware = "build/CoreSmoke.ino.merged.bin"
+elf = "build/CoreSmoke.ino.elf"

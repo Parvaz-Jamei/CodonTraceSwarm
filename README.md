@@ -1,12 +1,14 @@
 # CodonTraceSwarm
 
 <p align="center">
+  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/arduino.yml"><img alt="Arduino compile CI" src="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/arduino.yml/badge.svg"></a>
+  <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/native.yml"><img alt="Native, Unity and Genesis contract CI" src="https://github.com/Parvaz-Jamei/CodonTraceSwarm/actions/workflows/native.yml/badge.svg"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm"><img alt="Arduino Library Spec" src="https://img.shields.io/badge/Arduino%20Library-v1.5-00979C.svg?logo=arduino&logoColor=white"></a>
   <a href="https://en.cppreference.com/w/cpp/11"><img alt="C++ Standard" src="https://img.shields.io/badge/C%2B%2B-11%20Standard-00599C.svg?logo=c%2B%2B&logoColor=white"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/License-MIT-green.svg"></a>
   <a href="https://github.com/Parvaz-Jamei/CodonTraceSwarm/releases"><img alt="Release" src="https://img.shields.io/badge/Release-0.12.11-blue.svg"></a>
   <img alt="128 KB SRAM is listed, not a measured TLS budget" src="https://img.shields.io/badge/SRAM-128%20KB%20listed%2C%20not%20measured%20TLS-orange.svg">
-  <img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg">
+  <a href="#2-zero-unbounded-allocations"><img alt="Dynamic Memory" src="https://img.shields.io/badge/Heap%20Allocations-Zero%20(Hot%20Path)-brightgreen.svg"></a>
 </p>
 
 <p align="center">
@@ -50,7 +52,7 @@ Most IoT and Arduino libraries suffer from architectural pitfalls that corrupt e
 
 | Common Embedded Pitfall | How CodonTraceSwarm Solves It |
 |---|---|
-| **Heap Fragmentation (`String` / `malloc`)** | **Zero dynamic allocation on hot paths.** Static 34 KiB footprint, fixed 8 KiB transmission buffers, and deterministic stack frames. |
+| **Heap Fragmentation (`String` / `malloc`)** | **Zero heap calls in CodonTraceSwarm code on the hot paths listed under "Zero Unbounded Allocations"** (tested; third-party sensor and MQTT libraries excluded). Static 34 KiB footprint, fixed 8 KiB transmission buffers, and deterministic stack frames. |
 | **Silent Float / Locale Corruption** | **Strict C-locale numeric serializer.** Guarantees period decimal formatting (`1.50`), strictly rejecting comma locales (`1,50`). |
 | **Duplicate command admission** | **16-entry history, not a drop ring.** `submit` returns `HistoryFull` when the history is full. Accepted records are not silently dropped. Dedup is not cryptographic, and this library does not authenticate commands. `DeliveryContext.authenticated` is an adapter assertion. |
 | **Phantom Data on Clock Drift** | **Monitored clock with stale-sample gating.** Explicit uncertainty tracking; stale or uncalibrated readings are flagged before transmission. |
@@ -94,6 +96,39 @@ Supports rich data types out of the box without string coercion:
 
 ### 2. Zero Unbounded Allocations
 The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. Transmission buffers are bounded (`TxBytes = 8192`), eliminating runtime memory spikes and out-of-memory panics.
+**What "Heap Allocations Zero (Hot Path)" means, and how it is proven.** CodonTraceSwarm's own
+code makes no heap call on these hot paths: `Device::hello`, `reading` (scalar, vector,
+waveform, boolean, category, invalid), `heartbeat`; `CommandDecoder::decode`; `NetworkInbox`
+push/poll; `CommandSession` submit/poll/reply confirm; `ArduinoMqttAdapter`
+attach/receive/publishReply/close; and every `src/cts/sensors/*.h` adapter. Two checks back this:
+- `pio test -e native_noheap` (`tests/pio/test_no_heap_{core,sensors,fdcx}`): the test binary
+  defines the whole C allocation family itself (`malloc`, `free`, `calloc`, `realloc`,
+  `reallocarray`, `aligned_alloc`, `memalign`, `posix_memalign`, `valloc`, `pvalloc`,
+  `malloc_usable_size`) on a private arena, and `tests/heap_counter.h` replaces every
+  `operator new`/`delete` form (plain, array, nothrow, sized, `std::align_val_t` aligned). This is
+  glibc's supported malloc replacement, so calls made inside glibc and libstdc++ are counted
+  too, not only calls in our objects. Each listed path runs inside a counting window and must
+  record 0 allocations and 0 frees. A self-test proves the counter fires for every one of those
+  functions, for `new`/`new[]`/nothrow/aligned `new`, and for allocations made inside the
+  runtime: `strdup`, `strndup`, `asprintf`, `fopen` and a growing `std::string`. Vendor APIs are
+  test fakes (`tests/fakes`) and the MQTT client is a fixed-buffer fake.
+- `tools/check_no_heap.py`: every `src/*.cpp` object, plus TUs in `tests/heap_symbols` that
+  emit each header-only adapter (all sensor headers and an explicit `ArduinoMqttAdapter`
+  instantiation), must reference no `malloc`, `calloc`, `realloc`, `reallocarray`,
+  `posix_memalign`, `aligned_alloc`, `memalign`, `valloc`, `pvalloc`, `strdup`, `strndup`,
+  `asprintf`, `vasprintf` (and their `__*_chk`/`__strdup` forms), `operator new`, or any
+  `std::basic_string` symbol.
+
+Limits of the proof: it runs on x86-64 Linux with glibc and libstdc++, not on a board; a board
+toolchain's newlib/picolibc runtime is not instrumented. Allocation by `mmap`/`brk`/`sbrk`
+directly, or by `alloca`/VLAs (stack, not heap), is not counted; the library sources use none of
+them. Code paths are proven only as far as the tests drive them.
+
+Not covered by the claim: setup calls (`define`, `begin`, `bind`), and third-party code. The
+sensor libraries are outside it, and so is ArduinoMqttClient 0.1.8: at the reviewed SHA its
+`messageTopic()` returns a `String` by value, it `reserve()`s the received topic, and
+`beginMessage` copies the topic into a `String`, so a real ArduinoMqttClient can allocate
+while the adapter runs. The adapter adds no allocation of its own.
 
 ### 3. Bidirectional Command Engine
 - Bounded 8-command FIFO. `runOne` calls a `CommandExecutor`.
@@ -102,7 +137,7 @@ The `cts::Device` object uses a fixed, predictable **34 KiB memory footprint**. 
 
 ### 4. Resilient Network Orchestration
 - **`ReconnectOrchestrator`**: Hello before reading, and loss accounting for a publish that fails or stalls. It does not open a socket. A Hello or Reading retry is bounded by `2 * attemptTimeoutMs` from the first attempt of that message. A pending command reply is not dropped by that budget. PUBACK is not Genesis application acceptance.
-- **`ArduinoMqttAdapter`**: Optional synchronous MQTT helper. It is not the nonblocking reconnect seam. No broker round-trip is claimed done.
+- **`ArduinoMqttAdapter`**: Optional synchronous MQTT 3.1.1 helper for ArduinoMqttClient (MQTT 5 is not implemented; see `docs/ARDUINO_MQTT_ADAPTER.md`). It is not the nonblocking reconnect seam. No broker round-trip is claimed done.
 
 ### 5. Sensor Library Glue
 Wrappers call the sensor library named in the header (BME280 uses checked register reads instead of the Adafruit getters). They are compile-tested in CI for every FQBN in the table below (see `evidence/arduino_compile_matrix.json`). They were not flashed and not bench-tested.
@@ -469,6 +504,16 @@ These are the compact bytes produced by `device.hello` and `device.reading` for 
 ---
 
 ## 🧪 Native Verification & Test Harness
+
+CI also runs `.github/workflows/wokwi.yml`, which builds `examples/CoreSmoke` for
+`esp32:esp32:esp32` and simulates it in Wokwi, asserting that serial prints a hello and a reading.
+It needs the `WOKWI_CLI_TOKEN` repository secret; **without it that workflow fails on purpose**
+(it never shows green for a simulation that did not run). Setup: [`docs/WOKWI.md`](docs/WOKWI.md).
+The secret is not configured yet, so the simulation has not run.
+
+The contract job also checks the Genesis swarm wire fixtures vendored in
+`tests/golden/genesis_swarm` against their `MANIFEST.sha256` at the pinned Genesis commit
+(see that directory's README).
 
 Native tests run on a host workstation. They are not a broker round-trip and not N10.
 

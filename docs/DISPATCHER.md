@@ -81,8 +81,11 @@ synthetic callback; no hardware execution is claimed.
 ## Primary-source rationale
 
 MQTT QoS 1 permits duplicate delivery; application command identity must therefore
-be handled independently of transport packet flags. See OASIS MQTT 5.0 sections 4.3
-and 3.3.2.3.3:
+be handled independently of transport packet flags. The device side speaks MQTT 3.1.1
+(OASIS MQTT 3.1.1 section 4.3.2, QoS 1 "at least once"):
+http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html
+The same duplicate-delivery rule is kept in MQTT 5.0 (sections 4.3 and 3.3.2.3.3), which
+the Genesis host client uses; this library does not implement MQTT 5:
 https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html
 
 ESP Timer distinguishes elapsed time from calendar time, and deep sleep restarts
